@@ -99,6 +99,14 @@ MESSIER_EXTRA = {
 # entry is preferred but unique NGC showpieces (e.g. the Flame) still survive.
 PRIORITY = {"M": 0, "C": 1, "IC": 2, "Sh2": 3, "NGC": 4, "SNR": 5}
 
+# Corrections for known wrong common names in the source catalogs, keyed by the
+# object's final id. OpenNGC lists IC 434's common name as "Flame Nebula", but
+# IC 434 is the Horsehead emission region (the Flame is NGC 2024); SIMBAD has
+# IC 434 "includes NAME Horsehead Nebula".
+NAME_OVERRIDES = {
+    "IC 434": "Horsehead Nebula",
+}
+
 # Matches a Caldwell designation token in OpenNGC's Identifiers column ("C 020").
 CALDWELL_RE = re.compile(r"^C\s*0*([0-9]+)$")
 
@@ -300,13 +308,54 @@ def angular_sep(a: dict, b: dict) -> float:
     return math.degrees(math.acos(max(-1.0, min(1.0, d))))
 
 
+MIN_MERGE_DEG = 0.05  # 3' floor: small objects merge only when ~coincident
+# Cap the extent used for the merge radius. With 0.5*cap the radius tops out at
+# 27' — enough to fold a large object's differing catalog centres (North America
+# ~14', the Soul Nebula ~25' between its IC and Sh2 positions) into one label,
+# while staying well under the spacing of distinct non-Messier neighbours (e.g.
+# North America/Pelican at 89'). Messier is protected separately, so the famous
+# tight pairs (M31/M32 at 22', M81/M82) never hinge on this radius.
+MERGE_SIZE_CAP_ARCMIN = 54.0
+
+
+def common_name_of(o: dict) -> str:
+    """The object's common name for label carry-over. SNRs without a common name
+    carry their catalogue id (a G-name) instead, which isn't a real name."""
+    if o["name"]:
+        return o["name"]
+    if o["catalog"] == "SNR" and not o["id"].startswith("SNR "):
+        return o["id"]  # id IS the common name (e.g. "Cygnus Loop")
+    return ""
+
+
 def dedup(objs: list[dict]) -> list[dict]:
-    """Drop a lower-priority object whose centre coincides (<3') with a kept one."""
+    """Collapse cross-catalog duplicates of the same object to one label.
+
+    A large object (e.g. the North America Nebula) lands at noticeably different
+    nominal centres in Messier/Caldwell/NGC/Sharpless — tens of arcmin apart — so
+    a fixed 3' threshold leaves it labelled 2-3×. Instead the merge radius scales
+    with the object's extent (half its major axis, capped at 27'), floored at 3',
+    so big objects de-dup across catalogs while genuinely distinct neighbours
+    (North America/Pelican, the Heart vs the Soul) stay separate. Highest priority
+    wins (M > C > IC > Sh2 > NGC > SNR), but the survivor inherits a common name
+    from any duplicate it absorbs (so e.g. the Heart keeps its name when the
+    unnamed IC 1805 outranks the named Sh2-190). Messier is never dropped, so the
+    complete 110 (incl. close companions M32/M43/M110) always survive.
+    """
     objs = sorted(objs, key=lambda o: PRIORITY[o["catalog"]])
     kept: list[dict] = []
     for o in objs:
-        if any(angular_sep(o, k) < 0.05 for k in kept):
-            continue
+        if o["catalog"] != "M":
+            dup = None
+            for k in kept:
+                extent = min(max(o["sizeArcmin"], k["sizeArcmin"]), MERGE_SIZE_CAP_ARCMIN)
+                if angular_sep(o, k) < max(MIN_MERGE_DEG, 0.5 * extent / 60):
+                    dup = k
+                    break
+            if dup is not None:
+                if not dup["name"] and common_name_of(o):
+                    dup["name"] = common_name_of(o)
+                continue
         kept.append(o)
     return kept
 
@@ -320,7 +369,11 @@ def main() -> None:
     }
     for label, g in groups.items():
         print(f"  {label:14s}: {len(g)}")
-    merged = dedup([o for g in groups.values() for o in g])
+    allobjs = [o for g in groups.values() for o in g]
+    for o in allobjs:
+        if o["id"] in NAME_OVERRIDES:
+            o["name"] = NAME_OVERRIDES[o["id"]]
+    merged = dedup(allobjs)
 
     by_cat: dict[str, int] = {}
     for o in merged:

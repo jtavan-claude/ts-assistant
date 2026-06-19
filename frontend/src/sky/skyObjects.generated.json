@@ -1467,15 +1467,6 @@
 "catalog":"C"
 },
 {
-"id":"C50",
-"name":"NGC 2239",
-"ra":97.9815,
-"dec":4.942944444444445,
-"sizeArcmin":9.3,
-"kind":"nebula",
-"catalog":"C"
-},
-{
 "id":"C51",
 "name":"IC 1613",
 "ra":16.199125,
@@ -1944,15 +1935,6 @@
 "catalog":"IC"
 },
 {
-"id":"IC 1284",
-"name":"",
-"ra":274.415125,
-"dec":-19.672027777777778,
-"sizeArcmin":16.98,
-"kind":"nebula",
-"catalog":"IC"
-},
-{
 "id":"IC 1287",
 "name":"",
 "ra":277.85704166666665,
@@ -1999,7 +1981,7 @@
 },
 {
 "id":"IC 1805",
-"name":"",
+"name":"Heart Nebula",
 "ra":38.17295833333333,
 "dec":61.45688888888889,
 "sizeArcmin":60.0,
@@ -2017,7 +1999,7 @@
 },
 {
 "id":"IC 1848",
-"name":"",
+"name":"Soul Nebula",
 "ra":42.794125,
 "dec":60.40247222222222,
 "sizeArcmin":40.0,
@@ -2075,15 +2057,6 @@
 "ra":56.14245833333333,
 "dec":32.16283333333333,
 "sizeArcmin":10.0,
-"kind":"nebula",
-"catalog":"IC"
-},
-{
-"id":"IC 349",
-"name":"Barnard's Merope Nebula",
-"ra":56.58379166666666,
-"dec":23.939805555555555,
-"sizeArcmin":25.7,
 "kind":"nebula",
 "catalog":"IC"
 },
@@ -2170,7 +2143,7 @@
 },
 {
 "id":"IC 434",
-"name":"Flame Nebula",
+"name":"Horsehead Nebula",
 "ra":85.25366666666667,
 "dec":-2.453777777777778,
 "sizeArcmin":90.0,
@@ -2304,15 +2277,6 @@
 "catalog":"IC"
 },
 {
-"id":"IC 4812",
-"name":"",
-"ra":285.265125,
-"dec":-37.06033333333333,
-"sizeArcmin":10.0,
-"kind":"nebula",
-"catalog":"IC"
-},
-{
 "id":"IC 5068",
 "name":"",
 "ra":312.624,
@@ -2377,7 +2341,7 @@
 },
 {
 "id":"Sh2-103",
-"name":"",
+"name":"Cygnus Loop",
 "ra":312.6353,
 "dec":30.923446,
 "sizeArcmin":210.0,
@@ -2386,7 +2350,7 @@
 },
 {
 "id":"Sh2-108",
-"name":"",
+"name":"DR4, gamma Cygni SNR",
 "ra":305.647837,
 "dec":40.254302,
 "sizeArcmin":180.0,
@@ -2435,15 +2399,6 @@
 "ra":308.64168,
 "dec":46.877934,
 "sizeArcmin":50.0,
-"kind":"nebula",
-"catalog":"Sh2"
-},
-{
-"id":"Sh2-117",
-"name":"North America Nebula",
-"ra":314.693997,
-"dec":44.321858,
-"sizeArcmin":240.0,
 "kind":"nebula",
 "catalog":"Sh2"
 },
@@ -2692,37 +2647,10 @@
 },
 {
 "id":"Sh2-184",
-"name":"",
+"name":"Pacman Nebula",
 "ra":13.211532,
 "dec":56.610293,
 "sizeArcmin":40.0,
-"kind":"nebula",
-"catalog":"Sh2"
-},
-{
-"id":"Sh2-185",
-"name":"",
-"ra":15.000065,
-"dec":60.989678,
-"sizeArcmin":120.0,
-"kind":"nebula",
-"catalog":"Sh2"
-},
-{
-"id":"Sh2-190",
-"name":"Heart Nebula",
-"ra":38.346484,
-"dec":61.442324,
-"sizeArcmin":150.0,
-"kind":"nebula",
-"catalog":"Sh2"
-},
-{
-"id":"Sh2-199",
-"name":"Soul Nebula",
-"ra":43.639879,
-"dec":60.409384,
-"sizeArcmin":120.0,
 "kind":"nebula",
 "catalog":"Sh2"
 },
@@ -2818,7 +2746,7 @@
 },
 {
 "id":"Sh2-221",
-"name":"",
+"name":"HB9",
 "ra":75.416721,
 "dec":46.34883,
 "sizeArcmin":120.0,
@@ -2836,19 +2764,10 @@
 },
 {
 "id":"Sh2-224",
-"name":"",
+"name":"VRO 42.05.01",
 "ra":81.817178,
 "dec":42.971187,
 "sizeArcmin":30.0,
-"kind":"nebula",
-"catalog":"Sh2"
-},
-{
-"id":"Sh2-229",
-"name":"",
-"ra":79.079116,
-"dec":34.463366,
-"sizeArcmin":65.0,
 "kind":"nebula",
 "catalog":"Sh2"
 },
@@ -2925,15 +2844,6 @@
 "catalog":"Sh2"
 },
 {
-"id":"Sh2-25",
-"name":"",
-"ra":271.358484,
-"dec":-24.394248,
-"sizeArcmin":90.0,
-"kind":"nebula",
-"catalog":"Sh2"
-},
-{
 "id":"Sh2-251",
 "name":"",
 "ra":68.207621,
@@ -3006,29 +2916,11 @@
 "catalog":"Sh2"
 },
 {
-"id":"Sh2-275",
-"name":"Rosette Nebula",
-"ra":97.928714,
-"dec":4.929592,
-"sizeArcmin":100.0,
-"kind":"nebula",
-"catalog":"Sh2"
-},
-{
 "id":"Sh2-276",
 "name":"",
 "ra":81.867173,
 "dec":-3.965242,
 "sizeArcmin":1200.0,
-"kind":"nebula",
-"catalog":"Sh2"
-},
-{
-"id":"Sh2-277",
-"name":"",
-"ra":85.181784,
-"dec":-2.447136,
-"sizeArcmin":120.0,
 "kind":"nebula",
 "catalog":"Sh2"
 },
@@ -3060,15 +2952,6 @@
 "catalog":"Sh2"
 },
 {
-"id":"Sh2-281",
-"name":"",
-"ra":83.727499,
-"dec":-5.466557,
-"sizeArcmin":60.0,
-"kind":"nebula",
-"catalog":"Sh2"
-},
-{
 "id":"Sh2-282",
 "name":"",
 "ra":99.495686,
@@ -3083,15 +2966,6 @@
 "ra":101.258422,
 "dec":0.230744,
 "sizeArcmin":80.0,
-"kind":"nebula",
-"catalog":"Sh2"
-},
-{
-"id":"Sh2-29",
-"name":"",
-"ra":272.628815,
-"dec":-23.998547,
-"sizeArcmin":40.0,
 "kind":"nebula",
 "catalog":"Sh2"
 },
@@ -3178,7 +3052,7 @@
 },
 {
 "id":"Sh2-34",
-"name":"",
+"name":"(W30)",
 "ra":271.602081,
 "dec":-21.658393,
 "sizeArcmin":90.0,
@@ -3191,33 +3065,6 @@
 "ra":241.376397,
 "dec":0.394481,
 "sizeArcmin":45.0,
-"kind":"nebula",
-"catalog":"Sh2"
-},
-{
-"id":"Sh2-41",
-"name":"",
-"ra":273.964267,
-"dec":-18.235265,
-"sizeArcmin":90.0,
-"kind":"nebula",
-"catalog":"Sh2"
-},
-{
-"id":"Sh2-44",
-"name":"",
-"ra":274.123225,
-"dec":-16.733645,
-"sizeArcmin":60.0,
-"kind":"nebula",
-"catalog":"Sh2"
-},
-{
-"id":"Sh2-49",
-"name":"",
-"ra":274.669233,
-"dec":-13.961541,
-"sizeArcmin":90.0,
 "kind":"nebula",
 "catalog":"Sh2"
 },
@@ -3286,7 +3133,7 @@
 },
 {
 "id":"Sh2-79",
-"name":"",
+"name":"(W51)",
 "ra":290.826825,
 "dec":13.976087,
 "sizeArcmin":40.0,
@@ -3348,15 +3195,6 @@
 "catalog":"NGC"
 },
 {
-"id":"NGC 7000",
-"name":"North America Nebula",
-"ra":314.75,
-"dec":44.52,
-"sizeArcmin":120,
-"kind":"nebula",
-"catalog":"NGC"
-},
-{
 "id":"NGC 869",
 "name":"Double Cluster",
 "ra":35.0,
@@ -3380,24 +3218,6 @@
 "ra":220.375,
 "dec":-60.0,
 "sizeArcmin":29.0,
-"kind":"supernova",
-"catalog":"SNR"
-},
-{
-"id":"(W30)",
-"name":"",
-"ra":271.375,
-"dec":-21.4333,
-"sizeArcmin":45.0,
-"kind":"supernova",
-"catalog":"SNR"
-},
-{
-"id":"(W51)",
-"name":"",
-"ra":290.9583,
-"dec":14.1,
-"sizeArcmin":30.0,
 "kind":"supernova",
 "catalog":"SNR"
 },
@@ -3492,15 +3312,6 @@
 "catalog":"SNR"
 },
 {
-"id":"Cygnus Loop",
-"name":"",
-"ra":312.75,
-"dec":30.6667,
-"sizeArcmin":230.0,
-"kind":"supernova",
-"catalog":"SNR"
-},
-{
 "id":"DA 495",
 "name":"",
 "ra":298.0417,
@@ -3519,15 +3330,6 @@
 "catalog":"SNR"
 },
 {
-"id":"DR4, gamma Cygni SNR",
-"name":"",
-"ra":305.2083,
-"dec":40.4333,
-"sizeArcmin":60.0,
-"kind":"supernova",
-"catalog":"SNR"
-},
-{
 "id":"HB21",
 "name":"",
 "ra":311.25,
@@ -3542,24 +3344,6 @@
 "ra":34.4167,
 "dec":62.75,
 "sizeArcmin":80.0,
-"kind":"supernova",
-"catalog":"SNR"
-},
-{
-"id":"HB9",
-"name":"",
-"ra":75.25,
-"dec":46.6667,
-"sizeArcmin":140.0,
-"kind":"supernova",
-"catalog":"SNR"
-},
-{
-"id":"IC443, 3C157",
-"name":"",
-"ra":94.25,
-"dec":22.5667,
-"sizeArcmin":45.0,
 "kind":"supernova",
 "catalog":"SNR"
 },
@@ -3668,15 +3452,6 @@
 "ra":125.5417,
 "dec":-43.0,
 "sizeArcmin":60.0,
-"kind":"supernova",
-"catalog":"SNR"
-},
-{
-"id":"R5",
-"name":"",
-"ra":22.0833,
-"dec":63.1667,
-"sizeArcmin":45.0,
 "kind":"supernova",
 "catalog":"SNR"
 },
@@ -4059,15 +3834,6 @@
 "catalog":"SNR"
 },
 {
-"id":"SNR G085.9-00.6",
-"name":"",
-"ra":314.6667,
-"dec":44.8833,
-"sizeArcmin":24.0,
-"kind":"supernova",
-"catalog":"SNR"
-},
-{
 "id":"SNR G096.0+02.0",
 "name":"",
 "ra":322.625,
@@ -4091,15 +3857,6 @@
 "ra":343.4167,
 "dec":58.8333,
 "sizeArcmin":70.0,
-"kind":"supernova",
-"catalog":"SNR"
-},
-{
-"id":"SNR G113.0+00.2",
-"name":"",
-"ra":351.7083,
-"dec":61.4333,
-"sizeArcmin":40.0,
 "kind":"supernova",
 "catalog":"SNR"
 },
@@ -4365,15 +4122,6 @@
 "catalog":"SNR"
 },
 {
-"id":"SNR G320.6-01.6",
-"name":"",
-"ra":229.4583,
-"dec":-59.2667,
-"sizeArcmin":60.0,
-"kind":"supernova",
-"catalog":"SNR"
-},
-{
 "id":"SNR G321.9-00.3",
 "name":"",
 "ra":230.1667,
@@ -4550,15 +4298,6 @@
 "ra":266.375,
 "dec":-29.95,
 "sizeArcmin":24.0,
-"kind":"supernova",
-"catalog":"SNR"
-},
-{
-"id":"VRO 42.05.01",
-"name":"",
-"ra":81.625,
-"dec":42.9333,
-"sizeArcmin":55.0,
 "kind":"supernova",
 "catalog":"SNR"
 },
