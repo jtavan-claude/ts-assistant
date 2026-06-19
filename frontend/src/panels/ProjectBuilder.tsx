@@ -39,16 +39,13 @@ interface Props {
   fov: FovBox | null;
   draft: ProjectDraft | null;
   placeMode: PlaceMode;
-  /** Profile ids found in the existing DB, offered as suggestions. */
-  profiles: string[];
-  /** Existing exposure templates from the DB, offered in the plan picker. */
+  /** Existing exposure templates from the DB; one must be picked per plan. */
   templates: ExposureTemplate[];
   saving: boolean;
   saveResult: { ok: boolean; message: string } | null;
   onNewProject: () => void;
   onDiscard: () => void;
   onRenameProject: (name: string) => void;
-  onSetProfile: (id: string) => void;
   onAddTarget: () => void;
   onSelectTarget: (id: string) => void;
   onRemoveTarget: (id: string) => void;
@@ -61,14 +58,12 @@ interface Props {
   onSave: () => void;
 }
 
-/** Short label for a template in the picker: "name · filter · g120/o30". */
+/** Picker label, e.g. "S_900s · S · 900s · Gain: 56". Missing parts are dropped. */
 function templateLabel(t: ExposureTemplate): string {
   const bits = [t.name];
-  if (t.filter_name && t.filter_name !== t.name) bits.push(t.filter_name);
-  const go: string[] = [];
-  if (t.gain != null && t.gain >= 0) go.push(`g${t.gain}`);
-  if (t.offset != null && t.offset >= 0) go.push(`o${t.offset}`);
-  if (go.length) bits.push(go.join("/"));
+  if (t.filter_name) bits.push(t.filter_name);
+  if (t.default_exposure != null) bits.push(`${+t.default_exposure}s`);
+  if (t.gain != null && t.gain >= 0) bits.push(`Gain: ${t.gain}`);
   return bits.join(" · ");
 }
 
@@ -84,14 +79,12 @@ export default function ProjectBuilder({
   fov,
   draft,
   placeMode,
-  profiles,
   templates,
   saving,
   saveResult,
   onNewProject,
   onDiscard,
   onRenameProject,
-  onSetProfile,
   onAddTarget,
   onSelectTarget,
   onRemoveTarget,
@@ -112,7 +105,7 @@ export default function ProjectBuilder({
     !!draft.name.trim() &&
     !!draft.profileId.trim() &&
     draft.targets.length > 0 &&
-    plans.some((p) => p.filterName.trim() || p.exposureTemplateId != null) &&
+    plans.some((p) => p.exposureTemplateId != null) &&
     hasFov &&
     !saving;
 
@@ -309,21 +302,6 @@ export default function ProjectBuilder({
             )}
 
             <hr className="pb-sep" />
-            <label className="eq-field eq-name">
-              NINA profile
-              <input
-                list="ts-profiles"
-                value={draft.profileId}
-                placeholder="profile id"
-                onChange={(e) => onSetProfile(e.target.value)}
-              />
-              <datalist id="ts-profiles">
-                {profiles.map((p) => (
-                  <option key={p} value={p} />
-                ))}
-              </datalist>
-            </label>
-
             <div className="plan-head">
               <span className="eq-subtitle">Exposure plans</span>
               <button className="plan-add" onClick={onAddPlan} title="Add a filter">
@@ -331,61 +309,38 @@ export default function ProjectBuilder({
               </button>
             </div>
             <div className="plan-list">
+              {templates.length === 0 && (
+                <div className="eq-readout warn">
+                  No exposure templates found in the database.
+                </div>
+              )}
               {plans.map((p) => (
                 <div className="plan-row" key={p.id}>
-                  {templates.length > 0 && (
-                    <select
-                      className="plan-template"
-                      title="Use an existing exposure template, or a custom filter"
-                      value={p.exposureTemplateId != null ? String(p.exposureTemplateId) : ""}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === "") {
-                          onPatchPlan(p.id, { exposureTemplateId: null });
-                          return;
-                        }
-                        const t = templates.find((t) => t.id === Number(v));
-                        onPatchPlan(p.id, {
-                          exposureTemplateId: Number(v),
-                          filterName: t?.filter_name ?? t?.name ?? p.filterName,
-                          exposure: t?.default_exposure ?? p.exposure,
-                        });
-                      }}
-                    >
-                      <option value="">Custom filter…</option>
-                      {templates.map((t) => (
-                        <option key={t.id} value={String(t.id)}>
-                          {templateLabel(t)}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {p.exposureTemplateId != null ? (
-                    <input
-                      className="plan-filter"
-                      value={p.filterName}
-                      disabled
-                      title="filter comes from the selected template"
-                    />
-                  ) : (
-                    <input
-                      className="plan-filter"
-                      value={p.filterName}
-                      placeholder="filter"
-                      onChange={(e) => onPatchPlan(p.id, { filterName: e.target.value })}
-                    />
-                  )}
-                  <input
-                    className="plan-num"
-                    type="number"
-                    min={1}
-                    value={p.exposure}
-                    title="sub-exposure seconds"
-                    onChange={(e) =>
-                      onPatchPlan(p.id, { exposure: Math.max(1, Number(e.target.value)) })
-                    }
-                  />
-                  <span className="plan-unit">s</span>
+                  <select
+                    className="plan-template"
+                    title="Pick the exposure template to image through"
+                    value={p.exposureTemplateId != null ? String(p.exposureTemplateId) : ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        onPatchPlan(p.id, { exposureTemplateId: null });
+                        return;
+                      }
+                      const t = templates.find((t) => t.id === Number(v));
+                      onPatchPlan(p.id, {
+                        exposureTemplateId: Number(v),
+                        filterName: t?.filter_name ?? t?.name ?? "",
+                        exposure: t?.default_exposure ?? p.exposure,
+                      });
+                    }}
+                  >
+                    <option value="">Select Exposure Template</option>
+                    {templates.map((t) => (
+                      <option key={t.id} value={String(t.id)}>
+                        {templateLabel(t)}
+                      </option>
+                    ))}
+                  </select>
                   <input
                     className="plan-num"
                     type="number"
@@ -401,7 +356,7 @@ export default function ProjectBuilder({
                   <span className="plan-unit">×</span>
                   <button
                     className="target-del"
-                    title="Remove filter"
+                    title="Remove plan"
                     onClick={() => onRemovePlan(p.id)}
                   >
                     ✕
@@ -409,7 +364,7 @@ export default function ProjectBuilder({
                 </div>
               ))}
               {!plans.length && (
-                <div className="eq-readout warn">Add at least one filter to image.</div>
+                <div className="eq-readout warn">Add at least one exposure plan.</div>
               )}
             </div>
 

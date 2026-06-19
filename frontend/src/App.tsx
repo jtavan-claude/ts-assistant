@@ -141,14 +141,16 @@ export default function App() {
   function newProject() {
     const t = makeTargetDraft("Target 1");
     setProjectDraft({
+      // Profile is hidden in the UI; derive it from the existing projects, or
+      // fall back to a template's profile (everything is one profile for now).
       name: "New project",
-      profileId: profiles[0] ?? "",
+      profileId: profiles[0] ?? templates[0]?.profile_id ?? "",
       targets: [t],
       activeTargetId: t.id,
       exposurePlans: [
         {
           id: newTargetId(),
-          filterName: "L",
+          filterName: "",
           exposure: 120,
           desired: 20,
           exposureTemplateId: null,
@@ -252,7 +254,7 @@ export default function App() {
     if (!projectDraft || !fovSize || fovSize.widthDeg <= 0) return;
     const draft = projectDraft;
     const plans = draft.exposurePlans
-      .filter((p) => p.filterName.trim() || p.exposureTemplateId != null)
+      .filter((p) => p.exposureTemplateId != null)
       .map((p) => ({
         filter_name: p.filterName.trim() || null,
         exposure: p.exposure,
@@ -260,7 +262,7 @@ export default function App() {
         exposure_template_id: p.exposureTemplateId,
       }));
     if (!plans.length) {
-      setSaveResult({ ok: false, message: "Add at least one exposure plan (filter or template)." });
+      setSaveResult({ ok: false, message: "Select an exposure template for at least one plan." });
       return;
     }
 
@@ -424,7 +426,6 @@ export default function App() {
             fov={fovSize}
             draft={projectDraft}
             placeMode={placeMode}
-            profiles={profiles}
             templates={templates}
             saving={saving}
             saveResult={saveResult}
@@ -436,9 +437,6 @@ export default function App() {
             }}
             onRenameProject={(name) =>
               setProjectDraft((d) => (d ? { ...d, name } : d))
-            }
-            onSetProfile={(profileId) =>
-              setProjectDraft((d) => (d ? { ...d, profileId } : d))
             }
             onAddTarget={addTarget}
             onSelectTarget={(id) =>

@@ -284,7 +284,8 @@
   opacity: 0.6;
 }
 .plan-template {
-  flex: 1 1 100%;
+  flex: 1 1 0;
+  min-width: 0;
   background: var(--panel-2);
   color: var(--text);
   border: 1px solid var(--border);
