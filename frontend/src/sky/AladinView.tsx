@@ -12,6 +12,10 @@ import type { Survey, Target } from "../api";
 import { fovCorners, fovTopTriangle, type MosaicPanel } from "./fov";
 import { NAMED_OBJECTS, objectLabel } from "./skyObjects";
 
+// A named object is drawn only when its angular size is at least this fraction
+// of the current field-of-view width — the zoom-aware declutter for the overlay.
+const MIN_FOV_FRACTION = 0.02;
+
 export interface SkyFocus {
   ra: number;
   dec: number;
@@ -98,6 +102,7 @@ function AladinView(
   const coverageOverlayRef = useRef<any>(null);
   const namedCircleRef = useRef<any>(null);
   const namedLabelRef = useRef<any>(null);
+  const namedZoomTimerRef = useRef<number>(0);
   const draggingRef = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -231,6 +236,17 @@ function AladinView(
       // Clicking a FOV box (a footprint) rather than empty sky also dismisses it.
       aladin.on("footprintClicked", () => closePopup());
 
+      // Re-cull the named-object overlay when the zoom changes, so only objects
+      // large enough on-screen are drawn (debounced past the zoom animation).
+      aladin.on("zoomChanged", () => {
+        if (!showNamedRef.current) return;
+        window.clearTimeout(namedZoomTimerRef.current);
+        namedZoomTimerRef.current = window.setTimeout(
+          () => syncNamed(showNamedRef.current),
+          120,
+        );
+      });
+
       syncCatalog(targetsRef.current);
       syncFov(targetsRef.current, fovRef.current);
       syncDraft(draftRef.current);
@@ -334,7 +350,11 @@ function AladinView(
   }
 
   // Named-object overlay: a circle sized to each object's angular extent plus a
-  // label catalog. Both layers are populated when `show` is on and cleared off.
+  // label catalog. Zoom-aware culling keeps the view readable across ~420
+  // objects — an object is only drawn when its angular size is at least
+  // MIN_FOV_FRACTION of the current field of view, so a wide field shows only
+  // the giants (M31, the Veil, big Sharpless complexes) and zooming in reveals
+  // progressively smaller ones. Both layers are cleared when `show` is off.
   function syncNamed(show: boolean | undefined) {
     const circles = namedCircleRef.current;
     const labels = namedLabelRef.current;
@@ -342,16 +362,22 @@ function AladinView(
     circles.removeAll();
     labels.removeAll();
     if (show) {
-      for (const o of NAMED_OBJECTS) {
+      const f = aladinRef.current?.getFov?.();
+      const fovDeg = Array.isArray(f) ? f[0] : f;
+      const minSizeDeg = (fovDeg && fovDeg > 0 ? fovDeg : 60) * MIN_FOV_FRACTION;
+      const visible = NAMED_OBJECTS.filter(
+        (o) => o.sizeArcmin / 60 >= minSizeDeg,
+      );
+      for (const o of visible) {
         circles.add(A.circle(o.ra, o.dec, o.sizeArcmin / 2 / 60));
       }
       labels.addSources(
-        NAMED_OBJECTS.map((o) =>
+        visible.map((o) =>
           A.source(o.ra, o.dec, {
             label: objectLabel(o),
             popupTitle: objectLabel(o),
             popupDesc:
-              `${o.kind} · size ${o.sizeArcmin}'<br/>` +
+              `${o.kind} · ${o.catalog} · size ${o.sizeArcmin}'<br/>` +
               `RA ${o.ra.toFixed(4)}°, Dec ${o.dec.toFixed(4)}°`,
           }),
         ),
