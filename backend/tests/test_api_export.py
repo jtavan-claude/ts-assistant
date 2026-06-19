@@ -68,3 +68,31 @@ def test_export_rejects_blank_profile(client):
 def test_undo_unknown_operation_400(client):
     r = client.post("/api/export/op_does_not_exist/undo")
     assert r.status_code == 400
+
+
+def test_create_exposure_template(client):
+    r = client.post(
+        "/api/exposure-templates",
+        json={
+            "profile_id": PROFILE,
+            "name": "Ha 900s",
+            "filter_name": "Ha",
+            "gain": 120,
+            "offset": 30,
+            "default_exposure": 900.0,
+        },
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["id"] > 0
+    assert body["name"] == "Ha 900s" and body["filter_name"] == "Ha"
+    assert body["gain"] == 120 and body["default_exposure"] == 900.0
+
+
+def test_create_exposure_template_rejects_blank_name(client):
+    r = client.post(
+        "/api/exposure-templates",
+        json={"profile_id": PROFILE, "name": "  ", "filter_name": "Ha"},
+    )
+    assert r.status_code == 422
+    assert "name" in r.json()["detail"]

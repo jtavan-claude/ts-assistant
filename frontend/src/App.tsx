@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createExport,
+  createExposureTemplate,
   createPlanGroup,
   deletePlanGroup,
   fetchExposureTemplates,
@@ -11,6 +12,7 @@ import {
   updatePlanGroup,
   type ExportTargetInput,
   type ExposureTemplate,
+  type ExposureTemplateInput,
   type Health,
   type PlanGroup,
   type PlanGroupInput,
@@ -29,6 +31,7 @@ import AladinView, {
 import ProjectList from "./panels/ProjectList";
 import EquipmentPanel from "./panels/EquipmentPanel";
 import PlanGroupsPanel from "./panels/PlanGroupsPanel";
+import NewTemplateModal from "./panels/NewTemplateModal";
 import ProjectBuilder, {
   type ProjectDraft,
   type TargetDraft,
@@ -64,6 +67,8 @@ export default function App() {
   const [saveResult, setSaveResult] = useState<{ ok: boolean; message: string } | null>(
     null,
   );
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const templateResolverRef = useRef<((t: ExposureTemplate | null) => void) | null>(null);
   const aladinRef = useRef<AladinHandle>(null);
 
   useEffect(() => {
@@ -272,6 +277,26 @@ export default function App() {
   async function deleteGroup(id: string): Promise<void> {
     await deletePlanGroup(id);
     setPlanGroups((prev) => prev.filter((x) => x.id !== id));
+  }
+
+  // Create-template modal (qiz.5), promise-based so a picker can await the result.
+  function requestNewTemplate(): Promise<ExposureTemplate | null> {
+    return new Promise((resolve) => {
+      templateResolverRef.current = resolve;
+      setTemplateModalOpen(true);
+    });
+  }
+  async function submitNewTemplate(input: ExposureTemplateInput) {
+    const created = await createExposureTemplate(input); // throws -> modal shows error
+    setTemplates((prev) => [...prev, created]);
+    setTemplateModalOpen(false);
+    templateResolverRef.current?.(created);
+    templateResolverRef.current = null;
+  }
+  function cancelNewTemplate() {
+    setTemplateModalOpen(false);
+    templateResolverRef.current?.(null);
+    templateResolverRef.current = null;
   }
 
   // Apply a group: replace the draft's exposure plans with the group's items,
@@ -499,6 +524,7 @@ export default function App() {
             onPatchPlan={patchPlan}
             onRemovePlan={removePlan}
             onApplyPlanGroup={applyPlanGroup}
+            onRequestNewTemplate={requestNewTemplate}
             onSave={saveProject}
           />
           <PlanGroupsPanel
@@ -507,6 +533,7 @@ export default function App() {
             onCreate={createGroup}
             onUpdate={updateGroup}
             onDelete={deleteGroup}
+            onRequestNewTemplate={requestNewTemplate}
           />
           <ProjectList
             projects={projects}
@@ -535,6 +562,16 @@ export default function App() {
           />
         </main>
       </div>
+      {templateModalOpen && (
+        <NewTemplateModal
+          templates={templates}
+          profileId={
+            projectDraft?.profileId || templates[0]?.profile_id || profiles[0] || ""
+          }
+          onSubmit={submitNewTemplate}
+          onClose={cancelNewTemplate}
+        />
+      )}
     </div>
   );
 }
