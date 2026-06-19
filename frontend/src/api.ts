@@ -85,6 +85,30 @@ export interface PlanGroup {
 
 export type PlanGroupInput = Omit<PlanGroup, "id"> & { id?: string };
 
+/** Body for creating an exposure template (qiz.5). Only name/filter/profile are
+ * required; omitted fields take NINA defaults on the backend. */
+export interface ExposureTemplateInput {
+  profile_id: string;
+  name: string;
+  filter_name: string;
+  gain?: number | null;
+  offset?: number | null;
+  binning?: number | null;
+  readout_mode?: number | null;
+  twilight_level?: number;
+  moon_avoidance_enabled?: boolean;
+  moon_avoidance_separation?: number;
+  moon_avoidance_width?: number;
+  maximum_humidity?: number | null;
+  default_exposure?: number;
+  moon_relax_scale?: number;
+  moon_relax_max_altitude?: number;
+  moon_relax_min_altitude?: number;
+  moon_down_enabled?: boolean;
+  dither_every?: number;
+  minutes_offset?: number;
+}
+
 export interface Health {
   status: string;
   db_present: boolean;
@@ -193,6 +217,8 @@ export const fetchSurveys = () => getJSON<Survey[]>("/surveys");
 export const fetchProjects = () => getJSON<Project[]>("/projects");
 export const fetchExposureTemplates = () =>
   getJSON<ExposureTemplate[]>("/exposure-templates");
+export const createExposureTemplate = (input: ExposureTemplateInput) =>
+  postWithDetail<ExposureTemplate>("/exposure-templates", input);
 export const fetchPlanGroups = () => getJSON<PlanGroup[]>("/plan-groups");
 export const createPlanGroup = (g: PlanGroupInput) =>
   sendJSON<PlanGroup>("/plan-groups", "POST", g);

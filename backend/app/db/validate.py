@@ -27,7 +27,12 @@ import sqlite3
 
 from .introspect import introspect
 from .schema import EXPECTED_TABLES
-from .writer import WRITTEN_COLUMNS, ProjectSpec
+from .writer import (
+    TEMPLATE_WRITTEN_COLUMNS,
+    WRITTEN_COLUMNS,
+    ExposureTemplateSpec,
+    ProjectSpec,
+)
 
 
 class ValidationError(Exception):
@@ -71,6 +76,46 @@ def validate_schema(conn: sqlite3.Connection, spec: ProjectSpec) -> None:
                     f"incompatible Target Scheduler schema: '{table}.{c.name}' is "
                     f"NOT NULL without a default and is not written by TS Assistant"
                 )
+
+
+def _check_columns(table, columns, written: frozenset[str]) -> None:
+    """Raise if the table is missing a written column, or has an unsatisfiable
+    NOT-NULL-without-default column we don't write."""
+    have = {c.name.lower() for c in columns}
+    written_lower = {c.lower() for c in written}
+    absent = {c for c in written if c.lower() not in have}
+    if absent:
+        raise ValidationError(
+            f"incompatible Target Scheduler schema: table '{table}' is missing "
+            f"column(s) we write: {sorted(absent)}"
+        )
+    for c in columns:
+        if c.pk:  # rowid alias — auto-assigned
+            continue
+        if c.notnull and c.default is None and c.name.lower() not in written_lower:
+            raise ValidationError(
+                f"incompatible Target Scheduler schema: '{table}.{c.name}' is "
+                f"NOT NULL without a default and is not written by TS Assistant"
+            )
+
+
+def validate_exposure_template(conn: sqlite3.Connection, spec: ExposureTemplateSpec) -> None:
+    """Pre-write gate for creating an exposure template (qiz.5)."""
+    if not (spec.profile_id and spec.profile_id.strip()):
+        raise ValidationError("profile_id is required")
+    if not (spec.name and spec.name.strip()):
+        raise ValidationError("template name is required")
+    if not (spec.filter_name and spec.filter_name.strip()):
+        raise ValidationError("filter name is required")
+
+    conn.row_factory = sqlite3.Row
+    tables = {name.lower(): t for name, t in introspect(conn).items()}
+    t = tables.get("exposuretemplate")
+    if t is None:
+        raise ValidationError(
+            "target is not a recognized Target Scheduler DB; missing 'exposuretemplate'"
+        )
+    _check_columns("exposuretemplate", t.columns, TEMPLATE_WRITTEN_COLUMNS)
 
 
 # The injectable default hook (pre-write). Kept as the seam name from mh3.2.

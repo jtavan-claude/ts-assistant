@@ -39,8 +39,15 @@ from .provenance import (
     record_rows,
     rows_for_operation,
 )
-from .validate import default_validate
-from .writer import ProjectSpec, WriteResult, create_scheduler_db, write_project
+from .validate import default_validate, validate_exposure_template
+from .writer import (
+    ExposureTemplateSpec,
+    ProjectSpec,
+    WriteResult,
+    create_scheduler_db,
+    write_exposure_template,
+    write_project,
+)
 
 # Tables the writer touches, in FK-insert order.
 WRITTEN_TABLES = ("project", "exposuretemplate", "target", "exposureplan")
@@ -80,6 +87,16 @@ class UndoResult(BaseModel):
     target_db: str
     backup_path: str
     deleted: dict[str, int]
+
+
+class TemplateResult(BaseModel):
+    operation_id: str
+    target_db: str
+    backup_path: str
+    template_id: int
+    template_guid: str | None
+    counts: dict[str, int]
+    committed: bool = True
 
 
 # --- helpers ---------------------------------------------------------------
@@ -237,6 +254,96 @@ def export_project(
         target_ids=result.target_ids,
         plan_ids=result.plan_ids,
         template_ids=result.template_ids,
+        counts=counts,
+    )
+
+
+def create_exposure_template(
+    spec: ExposureTemplateSpec,
+    *,
+    target_db: str | Path | None = None,
+    backup_window_min: int | None = None,
+    validate: Callable[[sqlite3.Connection, ExposureTemplateSpec], None] | None = None,
+    now: datetime | None = None,
+) -> TemplateResult:
+    """Additively create one exposure template through the full safety path.
+
+    Same backup + BEGIN IMMEDIATE + provenance + additive-assert wrapper as
+    :func:`export_project`, but for a single INSERT. Provenanced, so the existing
+    :func:`undo_operation` removes it. Default target is the staging copy.
+    """
+    now = now or datetime.now(timezone.utc)
+    validate = validate or validate_exposure_template
+    target = _resolve_target(target_db)
+
+    backup = ensure_backup(target, window_min=backup_window_min, now=now)
+    operation_id = "op_" + uuid.uuid4().hex
+
+    conn = sqlite3.connect(target, isolation_level=None, timeout=CONNECT_TIMEOUT)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA foreign_keys = ON")
+        count_before = conn.execute("SELECT COUNT(*) FROM exposuretemplate").fetchone()[0]
+        max_before = conn.execute("SELECT COALESCE(MAX(Id), 0) FROM exposuretemplate").fetchone()[0]
+
+        conn.execute("BEGIN IMMEDIATE")
+        ensure_provenance_table(conn)
+        validate(conn, spec)
+        template_id = write_exposure_template(conn, spec)
+        guid = _guid(conn, "exposuretemplate", template_id)
+        record_rows(
+            conn,
+            operation_id,
+            [ProvRow(table="exposuretemplate", id=template_id, guid=guid)],
+            now.isoformat(),
+        )
+        count_after = conn.execute("SELECT COUNT(*) FROM exposuretemplate").fetchone()[0]
+        if count_after - count_before != 1:
+            raise ExportError(
+                f"additive check failed for exposuretemplate: +{count_after - count_before}, expected +1"
+            )
+        if template_id <= max_before:
+            raise ExportError(
+                f"non-additive id reuse in exposuretemplate: Id {template_id} <= prior max {max_before}"
+            )
+        fk = conn.execute("PRAGMA foreign_key_check").fetchall()
+        if fk:
+            raise ExportError(f"foreign key violations: {fk[:5]}")
+        if integrity_check_enabled():
+            status = conn.execute("PRAGMA integrity_check").fetchone()[0]
+            if status != "ok":
+                raise ExportError(f"integrity_check failed: {status}")
+        conn.commit()
+    except sqlite3.OperationalError as e:
+        conn.rollback()
+        raise _busy_or_export_error(e) from e
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+    target_key = str(target.resolve())
+    set_target_state(target_key, last_seen_signature=backup_signature(target))
+    counts = {"exposuretemplate": 1}
+    record_op(
+        OpLogEntry(
+            operation_id=operation_id,
+            written_at=now.isoformat(),
+            kind="create_template",
+            target_db=target_key,
+            backup_path=backup.path,
+            status="committed",
+            project_guid=None,
+            counts=counts,
+        )
+    )
+    return TemplateResult(
+        operation_id=operation_id,
+        target_db=target_key,
+        backup_path=backup.path,
+        template_id=template_id,
+        template_guid=guid,
         counts=counts,
     )
 

@@ -59,6 +59,8 @@ interface Props {
   onPatchPlan: (id: string, patch: Partial<ExposurePlanDraft>) => void;
   onRemovePlan: (id: string) => void;
   onApplyPlanGroup: (groupId: string) => void;
+  /** Open the create-template modal; resolves to the new template (or null). */
+  onRequestNewTemplate: () => Promise<ExposureTemplate | null>;
   onSave: () => void;
 }
 
@@ -91,6 +93,7 @@ export default function ProjectBuilder({
   onPatchPlan,
   onRemovePlan,
   onApplyPlanGroup,
+  onRequestNewTemplate,
   onSave,
 }: Props) {
   const hasFov = !!fov && fov.widthDeg > 0 && fov.heightDeg > 0;
@@ -335,8 +338,18 @@ export default function ProjectBuilder({
                     className="plan-template"
                     title="Pick the exposure template to image through"
                     value={p.exposureTemplateId != null ? String(p.exposureTemplateId) : ""}
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const v = e.target.value;
+                      if (v === "__new__") {
+                        const t = await onRequestNewTemplate();
+                        if (t)
+                          onPatchPlan(p.id, {
+                            exposureTemplateId: t.id,
+                            filterName: t.filter_name ?? t.name,
+                            exposure: t.default_exposure ?? p.exposure,
+                          });
+                        return;
+                      }
                       if (v === "") {
                         onPatchPlan(p.id, { exposureTemplateId: null });
                         return;
@@ -355,6 +368,7 @@ export default function ProjectBuilder({
                         {templateLabel(t)}
                       </option>
                     ))}
+                    <option value="__new__">＋ New template…</option>
                   </select>
                   <input
                     className="plan-num"

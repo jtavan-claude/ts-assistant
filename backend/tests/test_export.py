@@ -20,12 +20,14 @@ from app.db.export import (
     DatabaseBusyError,
     ExportError,
     ProgressError,
+    create_exposure_template,
     export_project,
     undo_operation,
 )
 from app.db.validate import ValidationError
 from app.db.writer import (
     ExposurePlanSpec,
+    ExposureTemplateSpec,
     ProjectSpec,
     TargetSpec,
     create_scheduler_db,
@@ -222,6 +224,69 @@ def test_plan_references_existing_template(tmp_path):
     conn.close()
     assert plan_tmpl == existing_id
     assert res.template_ids == {}  # we created/own no templates this op
+
+
+def test_create_exposure_template_additive(tmp_path):
+    """qiz.5: creating a template adds exactly one full-column row, provenanced,
+    additive, and is undoable via the existing undo path."""
+    db = _baseline(tmp_path / "t.sqlite")
+    conn = sqlite3.connect(db)
+    before = _rows(conn, "exposuretemplate")
+    conn.close()
+
+    spec = ExposureTemplateSpec(
+        profile_id=PROFILE,
+        name="Ha 3nm 900s",
+        filter_name="Ha",
+        gain=120,
+        offset=30,
+        binning=1,
+        moon_avoidance_enabled=True,
+        moon_avoidance_separation=120.0,
+        default_exposure=900.0,
+        dither_every=1,
+    )
+    res = create_exposure_template(spec, target_db=db, now=T0)
+
+    conn = sqlite3.connect(db)
+    after = _rows(conn, "exposuretemplate")
+    assert len(after) == len(before) + 1  # exactly one new row
+    assert res.template_id > max(before)  # additive id
+    row = after[res.template_id]
+    # advanced + essential fields persisted
+    assert row["name"] == "Ha 3nm 900s"
+    assert row["gain"] == 120 and row["offset"] == 30
+    assert row["moonavoidanceenabled"] == 1
+    assert row["moonavoidanceseparation"] == pytest.approx(120.0)
+    assert row["defaultexposure"] == pytest.approx(900.0)
+    assert row["ditherevery"] == 1
+    assert row["guid"]
+    # NINA defaults for untouched advanced fields
+    assert row["moonrelaxmaxaltitude"] == pytest.approx(5.0)
+    assert row["minutesOffset"] == 0
+    # baseline rows untouched
+    for tid, r in before.items():
+        assert after[tid] == r
+    assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+    conn.close()
+
+    # provenanced -> undoable via the generic undo path
+    undo_operation(res.operation_id, target_db=db, now=T0)
+    conn = sqlite3.connect(db)
+    assert len(_rows(conn, "exposuretemplate")) == len(before)
+    conn.close()
+
+
+def test_create_exposure_template_rejects_blank(tmp_path):
+    db = _baseline(tmp_path / "t.sqlite")
+    before = _sha(db)
+    with pytest.raises(ValidationError):
+        create_exposure_template(
+            ExposureTemplateSpec(profile_id=PROFILE, name="", filter_name="Ha"),
+            target_db=db,
+            now=T0,
+        )
+    assert _sha(db) == before  # rolled back, byte-identical
 
 
 def test_ra_persisted_in_hours_through_wrapper(tmp_path):

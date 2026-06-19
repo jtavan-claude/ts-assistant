@@ -69,6 +69,35 @@ class ProjectSpec(BaseModel):
     targets: list[TargetSpec] = Field(default_factory=list)
 
 
+class ExposureTemplateSpec(BaseModel):
+    """A full exposure template (capture definition) to create (qiz.5).
+
+    Unlike the bare template the project path auto-creates (:func:`_ensure_template`),
+    this carries all of NINA's tunables. Unset/advanced fields default to NINA's own
+    defaults so a minimal "name + filter" create still produces a valid row.
+    """
+
+    profile_id: str
+    name: str
+    filter_name: str
+    gain: int | None = None
+    offset: int | None = None
+    binning: int | None = 1
+    readout_mode: int | None = None
+    twilight_level: int = 0
+    moon_avoidance_enabled: bool = False
+    moon_avoidance_separation: float = 0.0
+    moon_avoidance_width: int = 0
+    maximum_humidity: float | None = None
+    default_exposure: float = 60.0
+    moon_relax_scale: float = 0.0
+    moon_relax_max_altitude: float = 5.0
+    moon_relax_min_altitude: float = -15.0
+    moon_down_enabled: bool = False
+    dither_every: int = -1
+    minutes_offset: int = 0
+
+
 class WriteResult(BaseModel):
     project_id: int
     target_ids: list[int]
@@ -96,6 +125,18 @@ WRITTEN_COLUMNS: dict[str, frozenset[str]] = {
         }
     ),
 }
+
+# Full column set written by write_exposure_template (qiz.5). Kept separate from the
+# bare project-path contract above so the project path's column contract is unchanged.
+TEMPLATE_WRITTEN_COLUMNS: frozenset[str] = frozenset(
+    {
+        "profileId", "name", "filtername", "gain", "offset", "bin", "readoutmode",
+        "twilightlevel", "moonavoidanceenabled", "moonavoidanceseparation",
+        "moonavoidancewidth", "maximumhumidity", "defaultexposure", "moonrelaxscale",
+        "moonrelaxmaxaltitude", "moonrelaxminaltitude", "moondownenabled", "ditherevery",
+        "minutesOffset", "guid",
+    }
+)
 
 
 def _guid() -> str:
@@ -203,3 +244,38 @@ def write_project(conn: sqlite3.Connection, spec: ProjectSpec) -> WriteResult:
         plan_ids=plan_ids,
         template_ids=templates,
     )
+
+
+def write_exposure_template(conn: sqlite3.Connection, spec: ExposureTemplateSpec) -> int:
+    """Insert one full exposure template; return its new Id. Does not commit."""
+    cur = conn.execute(
+        "INSERT INTO exposuretemplate"
+        " (profileId, name, filtername, gain, offset, bin, readoutmode, twilightlevel,"
+        "  moonavoidanceenabled, moonavoidanceseparation, moonavoidancewidth, maximumhumidity,"
+        "  defaultexposure, moonrelaxscale, moonrelaxmaxaltitude, moonrelaxminaltitude,"
+        "  moondownenabled, ditherevery, minutesOffset, guid)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            spec.profile_id,
+            spec.name,
+            spec.filter_name,
+            spec.gain,
+            spec.offset,
+            spec.binning,
+            spec.readout_mode,
+            spec.twilight_level,
+            1 if spec.moon_avoidance_enabled else 0,
+            spec.moon_avoidance_separation,
+            spec.moon_avoidance_width,
+            spec.maximum_humidity,
+            spec.default_exposure,
+            spec.moon_relax_scale,
+            spec.moon_relax_max_altitude,
+            spec.moon_relax_min_altitude,
+            1 if spec.moon_down_enabled else 0,
+            spec.dither_every,
+            spec.minutes_offset,
+            _guid(),
+        ),
+    )
+    return int(cur.lastrowid)

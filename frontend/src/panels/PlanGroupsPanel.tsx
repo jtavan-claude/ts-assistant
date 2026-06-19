@@ -13,6 +13,7 @@ interface Props {
   onCreate: (g: PlanGroupInput) => Promise<PlanGroup>;
   onUpdate: (g: PlanGroup) => Promise<PlanGroup>;
   onDelete: (id: string) => Promise<void>;
+  onRequestNewTemplate: () => Promise<ExposureTemplate | null>;
 }
 
 /** Manage reusable exposure plan groups (qiz.1 Stage 3): a named bundle of
@@ -23,6 +24,7 @@ export default function PlanGroupsPanel({
   onCreate,
   onUpdate,
   onDelete,
+  onRequestNewTemplate,
 }: Props) {
   const [selectedId, setSelectedId] = useState("");
   const [name, setName] = useState("");
@@ -132,9 +134,15 @@ export default function PlanGroupsPanel({
               <select
                 className="plan-template"
                 value={it.templateId != null ? String(it.templateId) : ""}
-                onChange={(e) =>
-                  patchItem(i, { templateId: e.target.value ? Number(e.target.value) : null })
-                }
+                onChange={async (e) => {
+                  const v = e.target.value;
+                  if (v === "__new__") {
+                    const t = await onRequestNewTemplate();
+                    if (t) patchItem(i, { templateId: t.id });
+                    return;
+                  }
+                  patchItem(i, { templateId: v ? Number(v) : null });
+                }}
               >
                 <option value="">Select Exposure Template</option>
                 {templates.map((t) => (
@@ -142,6 +150,7 @@ export default function PlanGroupsPanel({
                     {templateLabel(t)}
                   </option>
                 ))}
+                <option value="__new__">＋ New template…</option>
               </select>
               <input
                 className="plan-num"
