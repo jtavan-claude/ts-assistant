@@ -5,6 +5,7 @@ Pulls from authoritative online catalogs (so coordinates/sizes are accurate, not
 hand-typed) and writes frontend/src/sky/skyObjects.generated.json:
 
   - Messier (complete, 110)      via OpenNGC (mattiaverga/OpenNGC, J2000 + sizes + names)
+  - Caldwell (Patrick Moore)      via OpenNGC (Caldwell numbers tagged in Identifiers)
   - IC highlights (size-filtered) via OpenNGC
   - Sharpless Sh2 HII regions     via VizieR VII/20  (size-filtered)
   - Large supernova remnants      via VizieR VII/284 (Green 2019, size-filtered)
@@ -22,6 +23,7 @@ import io
 import json
 import math
 import os
+import re
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -90,7 +92,30 @@ MESSIER_EXTRA = {
 }
 
 # Catalog priority for de-duplication (lower wins when two entries coincide).
-PRIORITY = {"NGC": 0, "M": 1, "IC": 2, "Sh2": 3, "SNR": 4}
+# Messier first, then Caldwell (the user-requested highlight list), then the
+# survey catalogs; featured NGC ranks just above SNR so a coincident Caldwell
+# entry is preferred but unique NGC showpieces (e.g. the Flame) still survive.
+PRIORITY = {"M": 0, "C": 1, "IC": 2, "Sh2": 3, "NGC": 4, "SNR": 5}
+
+# Matches a Caldwell designation token in OpenNGC's Identifiers column ("C 020").
+CALDWELL_RE = re.compile(r"^C\s*0*([0-9]+)$")
+
+
+def caldwell_num(identifiers: str) -> int | None:
+    for tok in (identifiers or "").split(","):
+        m = CALDWELL_RE.match(tok.strip())
+        if m:
+            return int(m.group(1))
+    return None
+
+
+def pretty_id(name: str) -> str:
+    """OpenNGC compact name -> spaced catalog id: NGC0891 -> 'NGC 891'."""
+    for p in ("NGC", "IC"):
+        if name.startswith(p):
+            num = name[len(p):].lstrip("0") or "0"
+            return f"{p} {num}"
+    return name
 
 
 def fetch(url: str) -> str:
@@ -151,11 +176,15 @@ def parse_tsv(text: str, ncols: int) -> list[list[str]]:
     return rows
 
 
-def messier_and_ic() -> list[dict]:
+BAD_TYPES = ("Dup", "NonEx", "Other", "*", "**", "*Ass", "GxyCl")
+
+
+def openngc_objects() -> list[dict]:
     rows = list(csv.DictReader(io.StringIO(fetch(OPENNGC_URL)), delimiter=";"))
     rows += list(csv.DictReader(io.StringIO(fetch(OPENNGC_ADDENDUM_URL)), delimiter=";"))
     out: list[dict] = []
     seen_m: set[int] = set()
+    seen_c: set[int] = set()
     for row in rows:
         name = (row.get("Name") or "").strip()
         typ = (row.get("Type") or "").strip()
@@ -170,30 +199,33 @@ def messier_and_ic() -> list[dict]:
         common = (row.get("Common names") or "").split(",")[0].strip()
         kind = kind_from_type(typ)
         mnum = (row.get("M") or "").strip()
+        cnum = caldwell_num(row.get("Identifiers") or "")
+
         if mnum and typ != "Dup":
             # Messier: always include (even the asterism/double-star oddities),
             # except the "Dup" rows (e.g. M102 listed as a duplicate of M101).
             n = int(mnum)
-            if n in seen_m:
-                continue
-            seen_m.add(n)
-            out.append(
-                dict(
-                    id=f"M{n}", name=common, ra=ra, dec=dec,
-                    sizeArcmin=round(maj or 5.0, 2), kind=kind, catalog="M",
+            if n not in seen_m:
+                seen_m.add(n)
+                out.append(
+                    dict(id=f"M{n}", name=common, ra=ra, dec=dec,
+                         sizeArcmin=round(maj or 5.0, 2), kind=kind, catalog="M")
                 )
+            continue  # Caldwell excludes Messier; nothing else to add
+
+        if cnum and cnum not in seen_c and typ not in BAD_TYPES:
+            # Caldwell objects are all NGC/IC; keep the C-number as the id and
+            # fall back to the underlying catalog name when there's no common one.
+            seen_c.add(cnum)
+            out.append(
+                dict(id=f"C{cnum}", name=common or pretty_id(name), ra=ra, dec=dec,
+                     sizeArcmin=round(maj or 5.0, 2), kind=kind, catalog="C")
             )
-        elif (
-            name.startswith("IC")
-            and maj >= IC_MIN
-            and typ not in ("Dup", "NonEx", "Other", "*", "**", "*Ass", "GxyCl")
-        ):
+        elif name.startswith("IC") and maj >= IC_MIN and typ not in BAD_TYPES:
             num = name[2:].lstrip("0") or name[2:]
             out.append(
-                dict(
-                    id=f"IC {num}", name=common, ra=ra, dec=dec,
-                    sizeArcmin=round(maj, 2), kind=kind, catalog="IC",
-                )
+                dict(id=f"IC {num}", name=common, ra=ra, dec=dec,
+                     sizeArcmin=round(maj, 2), kind=kind, catalog="IC")
             )
 
     # Backfill any Messier number still missing (star clouds / contested ids).
@@ -280,7 +312,7 @@ def dedup(objs: list[dict]) -> list[dict]:
 def main() -> None:
     groups = {
         "featured NGC": featured_ngc(),
-        "Messier+IC": messier_and_ic(),
+        "OpenNGC (M/C/IC)": openngc_objects(),
         "Sharpless": sharpless(),
         "SNR": snrs(),
     }
