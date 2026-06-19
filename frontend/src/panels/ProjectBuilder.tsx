@@ -1,3 +1,4 @@
+import type { ExposureTemplate } from "../api";
 import type { FovBox, PlaceMode } from "../sky/AladinView";
 
 /** One target being framed: a single pointing (1×1) or a mosaic (N×M panes). */
@@ -12,12 +13,15 @@ export interface TargetDraft {
   rotationDeg: number;
 }
 
-/** One exposure plan for the project: a filter, sub-exposure, and frame count. */
+/** One exposure plan for the project: a filter, sub-exposure, and frame count.
+ * May reference an existing Target Scheduler exposure template by id (qiz.1);
+ * when null, the filter name auto-creates a bare template on export. */
 export interface ExposurePlanDraft {
   id: string;
   filterName: string;
   exposure: number;
   desired: number;
+  exposureTemplateId: number | null;
 }
 
 /** A draft Project: the top-tier artifact, holding one or more targets. */
@@ -37,6 +41,8 @@ interface Props {
   placeMode: PlaceMode;
   /** Profile ids found in the existing DB, offered as suggestions. */
   profiles: string[];
+  /** Existing exposure templates from the DB, offered in the plan picker. */
+  templates: ExposureTemplate[];
   saving: boolean;
   saveResult: { ok: boolean; message: string } | null;
   onNewProject: () => void;
@@ -55,6 +61,17 @@ interface Props {
   onSave: () => void;
 }
 
+/** Short label for a template in the picker: "name · filter · g120/o30". */
+function templateLabel(t: ExposureTemplate): string {
+  const bits = [t.name];
+  if (t.filter_name && t.filter_name !== t.name) bits.push(t.filter_name);
+  const go: string[] = [];
+  if (t.gain != null && t.gain >= 0) go.push(`g${t.gain}`);
+  if (t.offset != null && t.offset >= 0) go.push(`o${t.offset}`);
+  if (go.length) bits.push(go.join("/"));
+  return bits.join(" · ");
+}
+
 function raToHms(raDeg: number): string {
   const h = (((raDeg % 360) + 360) % 360) / 15;
   const hh = Math.floor(h);
@@ -68,6 +85,7 @@ export default function ProjectBuilder({
   draft,
   placeMode,
   profiles,
+  templates,
   saving,
   saveResult,
   onNewProject,
@@ -94,7 +112,7 @@ export default function ProjectBuilder({
     !!draft.name.trim() &&
     !!draft.profileId.trim() &&
     draft.targets.length > 0 &&
-    plans.some((p) => p.filterName.trim()) &&
+    plans.some((p) => p.filterName.trim() || p.exposureTemplateId != null) &&
     hasFov &&
     !saving;
 
@@ -315,12 +333,48 @@ export default function ProjectBuilder({
             <div className="plan-list">
               {plans.map((p) => (
                 <div className="plan-row" key={p.id}>
-                  <input
-                    className="plan-filter"
-                    value={p.filterName}
-                    placeholder="filter"
-                    onChange={(e) => onPatchPlan(p.id, { filterName: e.target.value })}
-                  />
+                  {templates.length > 0 && (
+                    <select
+                      className="plan-template"
+                      title="Use an existing exposure template, or a custom filter"
+                      value={p.exposureTemplateId != null ? String(p.exposureTemplateId) : ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "") {
+                          onPatchPlan(p.id, { exposureTemplateId: null });
+                          return;
+                        }
+                        const t = templates.find((t) => t.id === Number(v));
+                        onPatchPlan(p.id, {
+                          exposureTemplateId: Number(v),
+                          filterName: t?.filter_name ?? t?.name ?? p.filterName,
+                          exposure: t?.default_exposure ?? p.exposure,
+                        });
+                      }}
+                    >
+                      <option value="">Custom filter…</option>
+                      {templates.map((t) => (
+                        <option key={t.id} value={String(t.id)}>
+                          {templateLabel(t)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {p.exposureTemplateId != null ? (
+                    <input
+                      className="plan-filter"
+                      value={p.filterName}
+                      disabled
+                      title="filter comes from the selected template"
+                    />
+                  ) : (
+                    <input
+                      className="plan-filter"
+                      value={p.filterName}
+                      placeholder="filter"
+                      onChange={(e) => onPatchPlan(p.id, { filterName: e.target.value })}
+                    />
+                  )}
                   <input
                     className="plan-num"
                     type="number"
