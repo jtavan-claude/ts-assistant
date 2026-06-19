@@ -37,26 +37,46 @@ SURVEYS: list[Survey] = [
         label="DSS2 NIR",
         url_or_id="CDS/P/DSS2/NIR",
     ),
-    # NSNS HiPS base URLs are under /nebulae3/dr0_1/<layer> (the hips_service_url
-    # in each survey's properties). simg.de sends Access-Control-Allow-Origin: *,
-    # so Aladin Lite can load them directly. Dec ≳ -20° coverage only.
-    Survey(
-        id="nsns-halpha8",
-        label="NSNS Hα (8-bit)",
-        url_or_id="https://simg.de/nebulae3/dr0_1/halpha8",
-        note="Northern Sky Narrowband Survey; Dec ≳ -20° only.",
-    ),
+    # NSNS HiPS base URLs are under /nebulae3/<release>/<layer> (the
+    # hips_service_url in each survey's properties). simg.de sends
+    # Access-Control-Allow-Origin: *, so Aladin Lite can load them directly.
+    # DR0.2 is the current release and adds [OIII] and [SII] over DR0.1; it has
+    # no true-color layer, so True Color stays on DR0.1. Dec ≳ -20° coverage only.
     Survey(
         id="nsns-hbr8",
         label="NSNS Hα + continuum (color)",
-        url_or_id="https://simg.de/nebulae3/dr0_1/hbr8",
-        note="Northern Sky Narrowband Survey; Dec ≳ -20° only.",
+        url_or_id="https://simg.de/nebulae3/dr0_2/hbr8",
+        note="NSNS DR0.2; Dec ≳ -20° only.",
+    ),
+    Survey(
+        id="nsns-halpha8",
+        label="NSNS Hα",
+        url_or_id="https://simg.de/nebulae3/dr0_2/halpha8",
+        note="NSNS DR0.2; Dec ≳ -20° only.",
+    ),
+    Survey(
+        id="nsns-oiii8",
+        label="NSNS [OIII]",
+        url_or_id="https://simg.de/nebulae3/dr0_2/oiii8",
+        note="NSNS DR0.2; Dec ≳ -20° only.",
+    ),
+    Survey(
+        id="nsns-sii8",
+        label="NSNS [SII]",
+        url_or_id="https://simg.de/nebulae3/dr0_2/sii8",
+        note="NSNS DR0.2; Dec ≳ -20° only.",
+    ),
+    Survey(
+        id="nsns-rgb8",
+        label="NSNS RGB continuum",
+        url_or_id="https://simg.de/nebulae3/dr0_2/rgb8",
+        note="NSNS DR0.2; Dec ≳ -20° only.",
     ),
     Survey(
         id="nsns-tc8",
-        label="NSNS True Color",
+        label="NSNS True Color (DR0.1)",
         url_or_id="https://simg.de/nebulae3/dr0_1/tc8",
-        note="Northern Sky Narrowband Survey; Dec ≳ -20° only.",
+        note="NSNS DR0.1 (no true-color layer in DR0.2); Dec ≳ -20° only.",
     ),
     Survey(
         id="mellinger",
