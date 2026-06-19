@@ -126,9 +126,16 @@ export default function ProjectBuilder({
         )}
 
         {!draft ? (
-          <button onClick={onNewProject} disabled={!hasFov}>
-            ＋ New project
-          </button>
+          <>
+            <button onClick={onNewProject} disabled={!hasFov}>
+              ＋ New project
+            </button>
+            {saveResult && (
+              <div className={saveResult.ok ? "eq-readout save-ok" : "eq-readout warn"}>
+                {saveResult.message}
+              </div>
+            )}
+          </>
         ) : (
           <>
             <label className="eq-field eq-name">

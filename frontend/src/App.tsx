@@ -257,20 +257,61 @@ export default function App() {
       }
     }
 
+    const isMosaic = draft.targets.some((t) => t.cols * t.rows > 1);
+    const name = draft.name.trim();
     setSaving(true);
     setSaveResult(null);
     try {
       const res = await createExport({
         profile_id: draft.profileId.trim(),
-        name: draft.name.trim(),
-        is_mosaic: draft.targets.some((t) => t.cols * t.rows > 1),
+        name,
+        is_mosaic: isMosaic,
         targets: apiTargets,
       });
+
+      // Surface the just-created project in the list (it lives in the staging DB,
+      // which the read path doesn't load) so the user sees it land; its targets
+      // also appear on the sky. Optimistic + local to this session.
+      const created: Project = {
+        id: res.project_id,
+        name,
+        description: null,
+        profile_id: draft.profileId.trim(),
+        state: "draft",
+        priority: 1,
+        is_mosaic: isMosaic,
+        targets: apiTargets.map((t, i) => ({
+          id: res.target_ids[i] ?? -(i + 1),
+          name: t.name,
+          active: true,
+          ra_deg: t.ra_deg,
+          dec_deg: t.dec_deg,
+          rotation: t.rotation ?? 0,
+          roi: 100,
+          epoch: "J2000",
+          project_id: res.project_id,
+          project_name: name,
+          exposure_plans: t.exposure_plans.map((p, j) => ({
+            id: -(i * 1000 + j + 1),
+            filter_name: p.filter_name,
+            exposure: p.exposure,
+            desired: p.desired,
+            acquired: 0,
+            accepted: 0,
+            exposure_template_id: null,
+          })),
+        })),
+      };
+      setProjects((prev) => [created, ...prev]);
+
       const file = res.target_db.split(/[/\\]/).pop();
       setSaveResult({
         ok: true,
-        message: `Saved ${res.counts.target ?? apiTargets.length} target(s) to staging DB “${file}” (backup taken). Import it into NINA to use it.`,
+        message: `Saved “${name}” (${res.counts.target ?? apiTargets.length} target(s)) to staging DB “${file}”, backup taken. Import it into NINA to use it.`,
       });
+      // Return to the New-project state so another can be started; keep the message.
+      setProjectDraft(null);
+      setPlaceMode(null);
     } catch (e) {
       setSaveResult({ ok: false, message: e instanceof Error ? e.message : String(e) });
     } finally {
