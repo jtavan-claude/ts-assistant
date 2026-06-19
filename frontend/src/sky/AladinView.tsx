@@ -10,6 +10,7 @@ import {
 import A from "aladin-lite";
 import type { Survey, Target } from "../api";
 import { fovCorners, fovTopTriangle, type MosaicPanel } from "./fov";
+import { NAMED_OBJECTS, objectLabel } from "./skyObjects";
 
 export interface SkyFocus {
   ra: number;
@@ -56,6 +57,8 @@ interface Props {
   fov: FovBox | null;
   /** One render entry per project-draft target (amber overlay). */
   draft: TargetRender[] | null;
+  /** Draw the bundled named-object overlay (extent circles + labels). */
+  showNamedObjects?: boolean;
   /** Non-null shows a capture layer: 'move' = click/drag a center, 'coverage' = drag an area. */
   placeMode?: PlaceMode;
   onPlaceCenter?: (raDeg: number, decDeg: number) => void;
@@ -79,6 +82,7 @@ function AladinView(
     focus,
     fov,
     draft,
+    showNamedObjects,
     placeMode,
     onPlaceCenter,
     onCoverageDrag,
@@ -92,6 +96,8 @@ function AladinView(
   const fovOverlayRef = useRef<any>(null);
   const draftOverlayRef = useRef<any>(null);
   const coverageOverlayRef = useRef<any>(null);
+  const namedCircleRef = useRef<any>(null);
+  const namedLabelRef = useRef<any>(null);
   const draggingRef = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -106,6 +112,8 @@ function AladinView(
   fovRef.current = fov;
   const draftRef = useRef(draft);
   draftRef.current = draft;
+  const showNamedRef = useRef(showNamedObjects);
+  showNamedRef.current = showNamedObjects;
   const onPlaceRef = useRef(onPlaceCenter);
   onPlaceRef.current = onPlaceCenter;
   const onCoverageRef = useRef(onCoverageDrag);
@@ -183,6 +191,27 @@ function AladinView(
       aladin.addOverlay(coverageOverlay);
       coverageOverlayRef.current = coverageOverlay;
 
+      // Named-object overlay: a green extent ring per well-known object, plus a
+      // companion catalog that carries the labels (the catalog draws the text,
+      // the overlay draws the circles). Hidden until the topbar toggle is on.
+      const namedCircles = A.graphicOverlay({ color: "#7dffb0", lineWidth: 1 });
+      aladin.addOverlay(namedCircles);
+      namedCircleRef.current = namedCircles;
+
+      const namedLabels = A.catalog({
+        name: "Named objects",
+        sourceSize: 5,
+        color: "#7dffb0",
+        shape: "circle",
+        displayLabel: true,
+        labelColumn: "label",
+        labelColor: "#9affc7",
+        labelFont: "13px sans-serif",
+        onClick: "showPopup",
+      });
+      aladin.addCatalog(namedLabels);
+      namedLabelRef.current = namedLabels;
+
       // Aladin fires objectClicked(source) on a marker and objectClicked(null)
       // on empty sky. Recenter on a marker; close the popup on empty sky (so the
       // user can dismiss it by clicking anywhere, not just the small X).
@@ -205,6 +234,7 @@ function AladinView(
       syncCatalog(targetsRef.current);
       syncFov(targetsRef.current, fovRef.current);
       syncDraft(draftRef.current);
+      syncNamed(showNamedRef.current);
     };
 
     // Initialize only once the container has a concrete, non-zero size.
@@ -299,6 +329,33 @@ function AladinView(
         for (const p of t.panels) ov.add(A.polygon(p.corners));
         if (t.panels.length) ov.add(A.polygon(t.triangle)); // orientation marker
       }
+    }
+    aladinRef.current?.view?.requestRedraw?.();
+  }
+
+  // Named-object overlay: a circle sized to each object's angular extent plus a
+  // label catalog. Both layers are populated when `show` is on and cleared off.
+  function syncNamed(show: boolean | undefined) {
+    const circles = namedCircleRef.current;
+    const labels = namedLabelRef.current;
+    if (!circles || !labels) return;
+    circles.removeAll();
+    labels.removeAll();
+    if (show) {
+      for (const o of NAMED_OBJECTS) {
+        circles.add(A.circle(o.ra, o.dec, o.sizeArcmin / 2 / 60));
+      }
+      labels.addSources(
+        NAMED_OBJECTS.map((o) =>
+          A.source(o.ra, o.dec, {
+            label: objectLabel(o),
+            popupTitle: objectLabel(o),
+            popupDesc:
+              `${o.kind} · size ${o.sizeArcmin}'<br/>` +
+              `RA ${o.ra.toFixed(4)}°, Dec ${o.dec.toFixed(4)}°`,
+          }),
+        ),
+      );
     }
     aladinRef.current?.view?.requestRedraw?.();
   }
@@ -407,6 +464,11 @@ function AladinView(
     if (aladinRef.current) syncDraft(draft);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft]);
+
+  // Named-object overlay toggled.
+  useEffect(() => {
+    if (aladinRef.current) syncNamed(showNamedObjects);
+  }, [showNamedObjects]);
 
   // Imperative focus (click-to-center).
   useEffect(() => {
