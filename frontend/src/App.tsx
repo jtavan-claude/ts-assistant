@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  createExport,
   fetchHealth,
   fetchProjects,
   fetchSurveys,
+  type ExportTargetInput,
   type Health,
   type Project,
   type Survey,
@@ -47,6 +49,10 @@ export default function App() {
   const [fovSize, setFovSize] = useState<FovBox | null>(null);
   const [projectDraft, setProjectDraft] = useState<ProjectDraft | null>(null);
   const [placeMode, setPlaceMode] = useState<PlaceMode>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<{ ok: boolean; message: string } | null>(
+    null,
+  );
   const aladinRef = useRef<AladinHandle>(null);
 
   useEffect(() => {
@@ -67,6 +73,12 @@ export default function App() {
     [surveys, surveyId],
   );
   const targets = useMemo(() => projects.flatMap((p) => p.targets), [projects]);
+  // Profile ids already in the DB — a new project usually targets the same one.
+  const profiles = useMemo(() => {
+    const ids = new Set<string>();
+    for (const p of projects) if (p.profile_id) ids.add(p.profile_id);
+    return [...ids];
+  }, [projects]);
   const fovBox: FovBox | null = useMemo(
     () => (showFov ? fovSize : null),
     [showFov, fovSize],
@@ -122,8 +134,17 @@ export default function App() {
 
   function newProject() {
     const t = makeTargetDraft("Target 1");
-    setProjectDraft({ name: "New project", targets: [t], activeTargetId: t.id });
+    setProjectDraft({
+      name: "New project",
+      profileId: profiles[0] ?? "",
+      targets: [t],
+      activeTargetId: t.id,
+      exposurePlans: [
+        { id: newTargetId(), filterName: "L", exposure: 120, desired: 20 },
+      ],
+    });
     setPlaceMode("move");
+    setSaveResult(null);
   }
 
   function addTarget() {
@@ -163,6 +184,139 @@ export default function App() {
   function centerTargetHere() {
     const c = aladinRef.current?.getCenter();
     if (c) patchTarget({ centerRa: c[0], centerDec: c[1] });
+  }
+
+  function addPlan() {
+    setProjectDraft((d) =>
+      d
+        ? {
+            ...d,
+            exposurePlans: [
+              ...d.exposurePlans,
+              { id: newTargetId(), filterName: "", exposure: 120, desired: 20 },
+            ],
+          }
+        : d,
+    );
+  }
+
+  function patchPlan(id: string, patch: Partial<{ filterName: string; exposure: number; desired: number }>) {
+    setProjectDraft((d) =>
+      d
+        ? {
+            ...d,
+            exposurePlans: d.exposurePlans.map((p) =>
+              p.id === id ? { ...p, ...patch } : p,
+            ),
+          }
+        : d,
+    );
+  }
+
+  function removePlan(id: string) {
+    setProjectDraft((d) =>
+      d ? { ...d, exposurePlans: d.exposurePlans.filter((p) => p.id !== id) } : d,
+    );
+  }
+
+  // Expand every mosaic group into per-pane targets, attach the shared exposure
+  // plans, and POST to the export API. Writes go to a staging DB (never the live
+  // source); the frontend's tested mosaicPanels is the single source of geometry.
+  async function saveProject() {
+    if (!projectDraft || !fovSize || fovSize.widthDeg <= 0) return;
+    const draft = projectDraft;
+    const plans = draft.exposurePlans
+      .filter((p) => p.filterName.trim())
+      .map((p) => ({ filter_name: p.filterName.trim(), exposure: p.exposure, desired: p.desired }));
+    if (!plans.length) {
+      setSaveResult({ ok: false, message: "Add at least one exposure plan (filter)." });
+      return;
+    }
+
+    const apiTargets: ExportTargetInput[] = [];
+    for (const t of draft.targets) {
+      const panels = mosaicPanels(
+        t.centerRa,
+        t.centerDec,
+        fovSize.widthDeg,
+        fovSize.heightDeg,
+        t.cols,
+        t.rows,
+        t.overlapPct,
+        t.rotationDeg,
+      );
+      const mosaic = t.cols * t.rows > 1;
+      for (const p of panels) {
+        apiTargets.push({
+          name: mosaic ? `${t.name} ${p.row + 1}-${p.col + 1}` : t.name,
+          ra_deg: p.centerRa,
+          dec_deg: p.centerDec,
+          rotation: t.rotationDeg,
+          exposure_plans: plans,
+        });
+      }
+    }
+
+    const isMosaic = draft.targets.some((t) => t.cols * t.rows > 1);
+    const name = draft.name.trim();
+    setSaving(true);
+    setSaveResult(null);
+    try {
+      const res = await createExport({
+        profile_id: draft.profileId.trim(),
+        name,
+        is_mosaic: isMosaic,
+        targets: apiTargets,
+      });
+
+      // Surface the just-created project in the list (it lives in the staging DB,
+      // which the read path doesn't load) so the user sees it land; its targets
+      // also appear on the sky. Optimistic + local to this session.
+      const created: Project = {
+        id: res.project_id,
+        name,
+        description: null,
+        profile_id: draft.profileId.trim(),
+        state: "draft",
+        priority: 1,
+        is_mosaic: isMosaic,
+        targets: apiTargets.map((t, i) => ({
+          id: res.target_ids[i] ?? -(i + 1),
+          name: t.name,
+          active: true,
+          ra_deg: t.ra_deg,
+          dec_deg: t.dec_deg,
+          rotation: t.rotation ?? 0,
+          roi: 100,
+          epoch: "J2000",
+          project_id: res.project_id,
+          project_name: name,
+          exposure_plans: t.exposure_plans.map((p, j) => ({
+            id: -(i * 1000 + j + 1),
+            filter_name: p.filter_name,
+            exposure: p.exposure,
+            desired: p.desired,
+            acquired: 0,
+            accepted: 0,
+            exposure_template_id: null,
+          })),
+        })),
+      };
+      setProjects((prev) => [created, ...prev]);
+
+      const file = res.target_db.split(/[/\\]/).pop();
+      setSaveResult({
+        ok: true,
+        message: `Saved “${name}” (${res.counts.target ?? apiTargets.length} target(s)) to staging DB “${file}”, backup taken. Import it into NINA to use it.`,
+      });
+      // Return to the New-project state so another can be started; keep the message.
+      setProjectDraft(null);
+      setPlaceMode(null);
+    } catch (e) {
+      setSaveResult({ ok: false, message: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSaving(false);
+    }
   }
 
   // Coverage drag: auto-divide the dragged Area-of-Interest into rig-FOV panes
@@ -239,13 +393,20 @@ export default function App() {
             fov={fovSize}
             draft={projectDraft}
             placeMode={placeMode}
+            profiles={profiles}
+            saving={saving}
+            saveResult={saveResult}
             onNewProject={newProject}
             onDiscard={() => {
               setProjectDraft(null);
               setPlaceMode(null);
+              setSaveResult(null);
             }}
             onRenameProject={(name) =>
               setProjectDraft((d) => (d ? { ...d, name } : d))
+            }
+            onSetProfile={(profileId) =>
+              setProjectDraft((d) => (d ? { ...d, profileId } : d))
             }
             onAddTarget={addTarget}
             onSelectTarget={(id) =>
@@ -255,6 +416,10 @@ export default function App() {
             onPatchTarget={patchTarget}
             onSetMode={setPlaceMode}
             onCenterCurrent={centerTargetHere}
+            onAddPlan={addPlan}
+            onPatchPlan={patchPlan}
+            onRemovePlan={removePlan}
+            onSave={saveProject}
           />
           <ProjectList
             projects={projects}

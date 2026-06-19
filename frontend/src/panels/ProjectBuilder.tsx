@@ -12,11 +12,22 @@ export interface TargetDraft {
   rotationDeg: number;
 }
 
+/** One exposure plan for the project: a filter, sub-exposure, and frame count. */
+export interface ExposurePlanDraft {
+  id: string;
+  filterName: string;
+  exposure: number;
+  desired: number;
+}
+
 /** A draft Project: the top-tier artifact, holding one or more targets. */
 export interface ProjectDraft {
   name: string;
+  profileId: string;
   targets: TargetDraft[];
   activeTargetId: string | null;
+  /** Applied to every target/pane on export (the mosaic-imaging common case). */
+  exposurePlans: ExposurePlanDraft[];
 }
 
 interface Props {
@@ -24,15 +35,24 @@ interface Props {
   fov: FovBox | null;
   draft: ProjectDraft | null;
   placeMode: PlaceMode;
+  /** Profile ids found in the existing DB, offered as suggestions. */
+  profiles: string[];
+  saving: boolean;
+  saveResult: { ok: boolean; message: string } | null;
   onNewProject: () => void;
   onDiscard: () => void;
   onRenameProject: (name: string) => void;
+  onSetProfile: (id: string) => void;
   onAddTarget: () => void;
   onSelectTarget: (id: string) => void;
   onRemoveTarget: (id: string) => void;
   onPatchTarget: (patch: Partial<TargetDraft>) => void;
   onSetMode: (mode: PlaceMode) => void;
   onCenterCurrent: () => void;
+  onAddPlan: () => void;
+  onPatchPlan: (id: string, patch: Partial<ExposurePlanDraft>) => void;
+  onRemovePlan: (id: string) => void;
+  onSave: () => void;
 }
 
 function raToHms(raDeg: number): string {
@@ -47,19 +67,36 @@ export default function ProjectBuilder({
   fov,
   draft,
   placeMode,
+  profiles,
+  saving,
+  saveResult,
   onNewProject,
   onDiscard,
   onRenameProject,
+  onSetProfile,
   onAddTarget,
   onSelectTarget,
   onRemoveTarget,
   onPatchTarget,
   onSetMode,
   onCenterCurrent,
+  onAddPlan,
+  onPatchPlan,
+  onRemovePlan,
+  onSave,
 }: Props) {
   const hasFov = !!fov && fov.widthDeg > 0 && fov.heightDeg > 0;
   const active = draft?.targets.find((t) => t.id === draft.activeTargetId) ?? null;
   const isMosaic = active ? active.cols * active.rows > 1 : false;
+  const plans = draft?.exposurePlans ?? [];
+  const canSave =
+    !!draft &&
+    !!draft.name.trim() &&
+    !!draft.profileId.trim() &&
+    draft.targets.length > 0 &&
+    plans.some((p) => p.filterName.trim()) &&
+    hasFov &&
+    !saving;
 
   // Overall coverage span (overlap-adjusted) of the active target.
   let spanW = 0;
@@ -89,9 +126,16 @@ export default function ProjectBuilder({
         )}
 
         {!draft ? (
-          <button onClick={onNewProject} disabled={!hasFov}>
-            ＋ New project
-          </button>
+          <>
+            <button onClick={onNewProject} disabled={!hasFov}>
+              ＋ New project
+            </button>
+            {saveResult && (
+              <div className={saveResult.ok ? "eq-readout save-ok" : "eq-readout warn"}>
+                {saveResult.message}
+              </div>
+            )}
+          </>
         ) : (
           <>
             <label className="eq-field eq-name">
@@ -246,13 +290,92 @@ export default function ProjectBuilder({
               </>
             )}
 
+            <hr className="pb-sep" />
+            <label className="eq-field eq-name">
+              NINA profile
+              <input
+                list="ts-profiles"
+                value={draft.profileId}
+                placeholder="profile id"
+                onChange={(e) => onSetProfile(e.target.value)}
+              />
+              <datalist id="ts-profiles">
+                {profiles.map((p) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+            </label>
+
+            <div className="plan-head">
+              <span className="eq-subtitle">Exposure plans</span>
+              <button className="plan-add" onClick={onAddPlan} title="Add a filter">
+                ＋
+              </button>
+            </div>
+            <div className="plan-list">
+              {plans.map((p) => (
+                <div className="plan-row" key={p.id}>
+                  <input
+                    className="plan-filter"
+                    value={p.filterName}
+                    placeholder="filter"
+                    onChange={(e) => onPatchPlan(p.id, { filterName: e.target.value })}
+                  />
+                  <input
+                    className="plan-num"
+                    type="number"
+                    min={1}
+                    value={p.exposure}
+                    title="sub-exposure seconds"
+                    onChange={(e) =>
+                      onPatchPlan(p.id, { exposure: Math.max(1, Number(e.target.value)) })
+                    }
+                  />
+                  <span className="plan-unit">s</span>
+                  <input
+                    className="plan-num"
+                    type="number"
+                    min={1}
+                    value={p.desired}
+                    title="desired frames"
+                    onChange={(e) =>
+                      onPatchPlan(p.id, {
+                        desired: Math.max(1, Math.round(Number(e.target.value))),
+                      })
+                    }
+                  />
+                  <span className="plan-unit">×</span>
+                  <button
+                    className="target-del"
+                    title="Remove filter"
+                    onClick={() => onRemovePlan(p.id)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              {!plans.length && (
+                <div className="eq-readout warn">Add at least one filter to image.</div>
+              )}
+            </div>
+
             <button
               className="eq-save"
-              disabled
-              title="Saving the project to the Target Scheduler database arrives in the next phase"
+              disabled={!canSave}
+              onClick={onSave}
+              title={
+                canSave
+                  ? "Write this project to a staging Target Scheduler database"
+                  : "Needs a name, a NINA profile, a target, and an exposure plan"
+              }
             >
-              Save to database (next phase)
+              {saving ? "Saving…" : "Save to database"}
             </button>
+            {saveResult && (
+              <div className={saveResult.ok ? "eq-readout save-ok" : "eq-readout warn"}>
+                {saveResult.message}
+              </div>
+            )}
           </>
         )}
       </div>

@@ -235,6 +235,61 @@
   color: var(--text-dim);
   cursor: default;
 }
+.eq-readout.warn {
+  color: #ff6b6b;
+}
+.eq-readout.save-ok {
+  color: #4ade80;
+}
+.eq-subtitle {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+.plan-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+.plan-add {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 26px;
+  cursor: pointer;
+}
+.plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.plan-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.plan-row input {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 13px;
+}
+.plan-filter {
+  flex: 1;
+  min-width: 0;
+}
+.plan-num {
+  width: 52px;
+}
+.plan-unit {
+  color: var(--text-dim);
+  font-size: 12px;
+}
 .eq-error {
   color: #ff6b6b;
   font-size: 11px;

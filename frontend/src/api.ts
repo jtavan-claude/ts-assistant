@@ -95,6 +95,64 @@ async function sendJSON<T>(
   return res.json() as Promise<T>;
 }
 
+// --- export (write path) ---------------------------------------------------
+
+export interface ExportPlanInput {
+  filter_name: string;
+  exposure: number;
+  desired: number;
+}
+
+export interface ExportTargetInput {
+  name: string;
+  ra_deg: number;
+  dec_deg: number;
+  rotation?: number;
+  exposure_plans: ExportPlanInput[];
+}
+
+export interface ExportRequest {
+  profile_id: string;
+  name: string;
+  description?: string | null;
+  is_mosaic?: boolean;
+  targets: ExportTargetInput[];
+}
+
+export interface ExportResult {
+  operation_id: string;
+  target_db: string;
+  backup_path: string;
+  project_id: number;
+  target_ids: number[];
+  plan_ids: number[];
+  counts: Record<string, number>;
+}
+
+// POST that surfaces the backend's error `detail` (422 validation, 409 busy, ...)
+// rather than just the status code, so the Save UI can show a useful message.
+async function postWithDetail<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try {
+      const j = await res.json();
+      if (j && typeof j.detail === "string") msg = j.detail;
+    } catch {
+      /* non-JSON body */
+    }
+    throw new Error(msg);
+  }
+  return res.json() as Promise<T>;
+}
+
+export const createExport = (req: ExportRequest) =>
+  postWithDetail<ExportResult>("/export", req);
+
 export const fetchHealth = () => getJSON<Health>("/health");
 export const fetchSurveys = () => getJSON<Survey[]>("/surveys");
 export const fetchProjects = () => getJSON<Project[]>("/projects");
