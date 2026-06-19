@@ -88,6 +88,55 @@ export function fovTopTriangle(
   ];
 }
 
+/** One panel of a mosaic: its grid position, center, and rotated FOV corners. */
+export interface MosaicPanel {
+  row: number;
+  col: number;
+  centerRa: number;
+  centerDec: number;
+  corners: [number, number][];
+}
+
+/**
+ * Lay out an `cols` x `rows` grid of FOV panels (each panelWidthDeg x panelHeightDeg)
+ * centered on (centerRa, centerDec), with `overlapPct` overlap between neighbours and
+ * the whole grid rotated by `rotationDeg` (position angle, North->East).
+ *
+ * Panels share the mosaic position angle so the grid stays aligned. Row 0 is the top
+ * (+height/North-ish before rotation), col 0 is the left. The per-panel centers are the
+ * exact RA/Dec hand-off the future write path persists as Target rows.
+ */
+export function mosaicPanels(
+  centerRa: number,
+  centerDec: number,
+  panelWidthDeg: number,
+  panelHeightDeg: number,
+  cols: number,
+  rows: number,
+  overlapPct: number,
+  rotationDeg: number,
+): MosaicPanel[] {
+  const f = 1 - overlapPct / 100; // fraction of a panel between adjacent centers
+  const stepW = panelWidthDeg * f;
+  const stepH = panelHeightDeg * f;
+  const panels: MosaicPanel[] = [];
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const u = (col - (cols - 1) / 2) * stepW; // +u = right (along PA+90)
+      const v = ((rows - 1) / 2 - row) * stepH; // +v = top (along PA)
+      const [ra, dec] = localToRaDec(centerRa, centerDec, rotationDeg, u, v);
+      panels.push({
+        row,
+        col,
+        centerRa: ra,
+        centerDec: dec,
+        corners: fovCorners(ra, dec, panelWidthDeg, panelHeightDeg, rotationDeg),
+      });
+    }
+  }
+  return panels;
+}
+
 export interface FovCalc {
   plateScaleArcsecPerPx: number;
   fovWidthDeg: number;

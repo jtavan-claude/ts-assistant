@@ -1,7 +1,15 @@
-import { useEffect, useRef } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any -- aladin-lite ships no
+   types, so the instance, catalog and overlay handles are typed as `any` at
+   this wrapper boundary. */
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import A from "aladin-lite";
 import type { Survey, Target } from "../api";
-import { fovCorners, fovTopTriangle } from "./fov";
+import { fovCorners, fovTopTriangle, type MosaicPanel } from "./fov";
 
 export interface SkyFocus {
   ra: number;
@@ -16,11 +24,30 @@ export interface FovBox {
   heightDeg: number;
 }
 
+/** What AladinView draws for one draft target: panel boxes + an orientation marker. */
+export interface TargetRender {
+  panels: MosaicPanel[];
+  triangle: [number, number][];
+}
+
+/** Imperative handle so the controls can read the current view center/zoom. */
+export interface AladinHandle {
+  /** Current view center as [raDeg, decDeg], or null before init. */
+  getCenter: () => [number, number] | null;
+  /** Current field of view in degrees (width), or null before init. */
+  getFov: () => number | null;
+}
+
 interface Props {
   survey?: Survey;
   targets: Target[];
   focus: SkyFocus | null;
   fov: FovBox | null;
+  /** One render entry per project-draft target (amber overlay). */
+  draft: TargetRender[] | null;
+  /** When true, a capture layer turns sky clicks/drags into onPlaceCenter calls. */
+  placing?: boolean;
+  onPlaceCenter?: (raDeg: number, decDeg: number) => void;
   onTargetClick?: (id: number) => void;
 }
 
@@ -33,17 +60,25 @@ interface Props {
  * initialization on a ResizeObserver until the host actually has a size. The
  * design is also React.StrictMode-safe (no double instance, per-effect dispose).
  */
-export default function AladinView({
-  survey,
-  targets,
-  focus,
-  fov,
-  onTargetClick,
-}: Props) {
+function AladinView(
+  {
+    survey,
+    targets,
+    focus,
+    fov,
+    draft,
+    placing,
+    onPlaceCenter,
+    onTargetClick,
+  }: Props,
+  ref: React.Ref<AladinHandle>,
+) {
   const divRef = useRef<HTMLDivElement>(null);
   const aladinRef = useRef<any>(null);
   const catalogRef = useRef<any>(null);
   const fovOverlayRef = useRef<any>(null);
+  const draftOverlayRef = useRef<any>(null);
+  const draggingRef = useRef(false);
 
   // Latest props, readable from inside the async init closure.
   const onClickRef = useRef(onTargetClick);
@@ -54,6 +89,21 @@ export default function AladinView({
   targetsRef.current = targets;
   const fovRef = useRef(fov);
   fovRef.current = fov;
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const onPlaceRef = useRef(onPlaceCenter);
+  onPlaceRef.current = onPlaceCenter;
+
+  useImperativeHandle(ref, () => ({
+    getCenter: () => {
+      const c = aladinRef.current?.getRaDec?.();
+      return c ? [c[0], c[1]] : null;
+    },
+    getFov: () => {
+      const f = aladinRef.current?.getFov?.();
+      return f ? (Array.isArray(f) ? f[0] : f) : null;
+    },
+  }));
 
   useEffect(() => {
     const host = divRef.current;
@@ -95,6 +145,15 @@ export default function AladinView({
       aladin.addOverlay(fovOverlay);
       fovOverlayRef.current = fovOverlay;
 
+      // Project-draft overlay, amber so it reads distinctly from the cyan
+      // per-target FOV boxes that can be shown at the same time.
+      const draftOverlay = A.graphicOverlay({
+        color: "#ffb300",
+        lineWidth: 2,
+      });
+      aladin.addOverlay(draftOverlay);
+      draftOverlayRef.current = draftOverlay;
+
       // Aladin fires objectClicked(source) on a marker and objectClicked(null)
       // on empty sky. Recenter on a marker; close the popup on empty sky (so the
       // user can dismiss it by clicking anywhere, not just the small X).
@@ -116,6 +175,7 @@ export default function AladinView({
 
       syncCatalog(targetsRef.current);
       syncFov(targetsRef.current, fovRef.current);
+      syncDraft(draftRef.current);
     };
 
     // Initialize only once the container has a concrete, non-zero size.
@@ -201,6 +261,47 @@ export default function AladinView({
     aladinRef.current?.view?.requestRedraw?.();
   }
 
+  function syncDraft(targets: TargetRender[] | null) {
+    const ov = draftOverlayRef.current;
+    if (!ov) return;
+    ov.removeAll();
+    if (targets) {
+      for (const t of targets) {
+        for (const p of t.panels) ov.add(A.polygon(p.corners));
+        if (t.panels.length) ov.add(A.polygon(t.triangle)); // orientation marker
+      }
+    }
+    aladinRef.current?.view?.requestRedraw?.();
+  }
+
+  // Translate a pointer event over the sky to RA/Dec and report it as the new
+  // mosaic center (drop-on-click and drag-to-move both flow through here).
+  function placeFromEvent(e: React.PointerEvent) {
+    const al = aladinRef.current;
+    const host = divRef.current;
+    if (!al || !host) return;
+    const rect = host.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const world = al.pix2world?.(x, y);
+    if (world && Number.isFinite(world[0]) && Number.isFinite(world[1])) {
+      onPlaceRef.current?.(world[0], world[1]);
+    }
+  }
+
+  function onCapDown(e: React.PointerEvent) {
+    draggingRef.current = true;
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    placeFromEvent(e);
+  }
+  function onCapMove(e: React.PointerEvent) {
+    if (draggingRef.current) placeFromEvent(e);
+  }
+  function onCapUp(e: React.PointerEvent) {
+    draggingRef.current = false;
+    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+  }
+
   // Survey changes.
   useEffect(() => {
     if (aladinRef.current && survey) {
@@ -222,6 +323,12 @@ export default function AladinView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fov]);
 
+  // Project-draft changes.
+  useEffect(() => {
+    if (aladinRef.current) syncDraft(draft);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft]);
+
   // Imperative focus (click-to-center).
   useEffect(() => {
     if (aladinRef.current && focus) {
@@ -230,5 +337,20 @@ export default function AladinView({
     }
   }, [focus]);
 
-  return <div ref={divRef} className="aladin-host" />;
+  return (
+    <div className="aladin-wrap">
+      <div ref={divRef} className="aladin-host" />
+      {placing && (
+        <div
+          className="mosaic-capture"
+          onPointerDown={onCapDown}
+          onPointerMove={onCapMove}
+          onPointerUp={onCapUp}
+          onPointerCancel={onCapUp}
+        />
+      )}
+    </div>
+  );
 }
+
+export default forwardRef(AladinView);
