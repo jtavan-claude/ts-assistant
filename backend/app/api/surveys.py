@@ -43,6 +43,12 @@ SURVEYS: list[Survey] = [
     # DR0.2 is the current release and adds [OIII] and [SII] over DR0.1; it has
     # no true-color layer, so True Color stays on DR0.1. Dec ≳ -20° coverage only.
     Survey(
+        id="nsns-ohs8",
+        label="NSNS OHS color ([OIII]→R, Hα→G, [SII]→B)",
+        url_or_id="https://simg.de/nebulae3/dr0_2/ohs8",
+        note="NSNS DR0.2 narrowband composite; Dec ≳ -20° only.",
+    ),
+    Survey(
         id="nsns-hbr8",
         label="NSNS Hα + continuum (color)",
         url_or_id="https://simg.de/nebulae3/dr0_2/hbr8",
