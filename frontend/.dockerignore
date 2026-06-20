@@ -1,0 +1,6 @@
+node_modules/
+dist/
+# Playwright verification scratch (frontend/*.mjs) and docs aren't needed to build.
+*.mjs
+README.md
+.gitignore

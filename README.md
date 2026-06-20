@@ -44,6 +44,8 @@ See [Operating modes](#operating-modes-staging-vs-live).
 - A NINA **Target Scheduler** database (`schedulerdb.sqlite`). On the NINA machine
   this is usually at `%localappdata%\NINA\SchedulerPlugin\schedulerdb.sqlite`.
 
+Prefer not to install Python and Node? See [Run with Docker](#run-with-docker-optional).
+
 ## Installation & running
 
 TS Assistant has two parts that run side by side: a backend (the API) and a
@@ -83,6 +85,45 @@ npm run dev
 Then open **<http://localhost:5173>** (or `http://<server-ip>:5173` from another
 computer on your network). The interface finds the backend automatically on the
 same host.
+
+## Run with Docker (optional)
+
+If you'd rather not install Python, uv, and Node, you can run everything with
+[Docker](https://docs.docker.com/get-docker/) instead. This is completely
+optional — the steps above work just as well.
+
+1. Copy the example settings and edit them:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   At a minimum, set `TS_DB_DIR` to the folder that contains your
+   `schedulerdb.sqlite` (or drop the database into `sample_database/` and leave
+   the default). To run in live mode, set `TS_ASSISTANT_ALLOW_LIVE_WRITE=1` here.
+
+2. Start it:
+
+   ```bash
+   docker compose up --build
+   ```
+
+3. Open **<http://localhost:5173>** (or `http://<server-ip>:5173` from another
+   computer on your network).
+
+A few things worth knowing:
+
+- **Both ports are published** (5173 for the interface, 8008 for the API), because
+  your browser talks to the API directly. Keep the backend on 8008 unless you know
+  what you're changing.
+- **Your database folder is mounted in.** In staging mode it's only read; in live
+  mode it's read and written in place (add `:ro` after the mount in
+  `docker-compose.yml` if you want to force read-only in staging). Whichever mode
+  you pick works exactly as described below.
+- **Backups and working copies** live in `./data` next to the project, so they
+  survive restarts and are easy to grab if you ever need to restore one.
+- The container needs to write your database and its backups, so it runs as root
+  inside the container. That's normal for a local tool you run yourself.
 
 ## Operating modes: staging vs live
 

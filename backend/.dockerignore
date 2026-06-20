@@ -1,0 +1,9 @@
+# Keep the build context (and image) lean. The DB and data live in bind mounts.
+.venv/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+tests/
+*.mcp.json
+.claude/
+.gitignore
