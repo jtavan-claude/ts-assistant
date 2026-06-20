@@ -387,6 +387,25 @@
   gap: 4px;
   font-size: 12px;
 }
+.oeo-handle {
+  cursor: grab;
+  color: var(--text-dim);
+  user-select: none;
+  padding: 0 2px;
+}
+.oeo-handle:active {
+  cursor: grabbing;
+}
+.oeo-dragging {
+  opacity: 0.4;
+}
+/* Insertion indicator showing where a dragged step will land. */
+.oeo-drop-before {
+  box-shadow: inset 0 2px 0 0 var(--accent);
+}
+.oeo-drop-after {
+  box-shadow: inset 0 -2px 0 0 var(--accent);
+}
 .oeo-num {
   width: 18px;
   color: var(--text-dim);
@@ -483,6 +502,12 @@
   margin: 0 0 4px;
   font-size: 11px;
   color: var(--text-dim);
+  line-height: 1.3;
+}
+.rw-warn {
+  margin: 2px 0 4px;
+  font-size: 11px;
+  color: #ffb454;
   line-height: 1.3;
 }
 .rw-row {
