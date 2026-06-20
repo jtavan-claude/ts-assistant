@@ -1,0 +1,48 @@
+# Optional containerized deployment for TS Assistant (bead ez9).
+#
+# The bare-metal path (uv + npm, see README) stays fully supported — this is just a
+# one-command convenience for people who don't want to install Python/uv/Node.
+#
+# Quick start:
+#   1. cp .env.example .env   and edit it (at minimum, point TS_DB_DIR at the folder
+#      that holds your schedulerdb.sqlite — or drop the DB into ./sample_database and
+#      keep the default).
+#   2. docker compose up --build
+#   3. Open http://<this-host>:5173
+#
+# Networking note: the browser calls the backend directly at http://<same-host>:8008,
+# so BOTH ports are published. If you remap the backend port, also build the frontend
+# with VITE_API_BASE (see frontend/Dockerfile) so the app knows where to find it.
+
+services:
+  backend:
+    build: ./backend
+    image: ts-assistant-backend
+    ports:
+      - "${TS_BACKEND_PORT:-8008}:8008"
+    environment:
+      # Operating mode is fixed at launch (o2c): STAGING (safe, default) writes a
+      # separate staging copy; LIVE reads AND writes your real DB. There is no
+      # in-app switch — set this deliberately here.
+      TS_ASSISTANT_ALLOW_LIVE_WRITE: "${TS_ASSISTANT_ALLOW_LIVE_WRITE:-0}"
+      # Gzip the pre-write backups (recommended in LIVE — each is ~the DB's size).
+      TS_ASSISTANT_BACKUP_GZIP: "${TS_ASSISTANT_BACKUP_GZIP:-0}"
+    volumes:
+      # The folder holding your Target Scheduler DB. Mounted read-write so LIVE mode
+      # can write the DB plus its SQLite -wal/-shm sidecars; STAGING never writes it.
+      # Mounting the *directory* (not the file) is required for those sidecars.
+      # Append ":ro" for belt-and-suspenders read-only in STAGING.
+      - "${TS_DB_DIR:-./sample_database}:/app/sample_database"
+      # Working copies, the staging DB, and timestamped pre-write backups. Kept as a
+      # host bind so backups are easy to grab if you ever need to restore (./data/backups).
+      - ./data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    image: ts-assistant-frontend
+    ports:
+      - "${TS_FRONTEND_PORT:-5173}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
