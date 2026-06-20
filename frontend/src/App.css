@@ -290,6 +290,22 @@
   color: var(--text-dim);
   cursor: default;
 }
+.eq-discard {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+}
+.eq-discard:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.eq-discard:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 .eq-readout.warn {
   color: #ff6b6b;
 }
