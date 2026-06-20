@@ -539,6 +539,28 @@ def test_update_preserves_flathistory(tmp_path):
     assert n == 1  # target Id stable → flat history survives the edit
 
 
+def test_update_backfills_null_required_columns(tmp_path):
+    """Editing self-heals a NULL NINA-required column (e.g. createDate) so the edited
+    project loads in NINA instead of crashing (bead nil class)."""
+    db = _baseline(tmp_path / "t.sqlite")
+    pid = _export_draft(db).project_id
+    tgt, _plan_id, etid = _first_target_and_plan(db, pid)
+    conn = sqlite3.connect(db)
+    conn.execute("UPDATE project SET createdate = NULL WHERE Id = ?", (pid,))
+    conn.commit()
+    conn.close()
+
+    spec = ProjectSpec(profile_id=PROFILE, name="Draft", state=0,
+                       targets=[TargetSpec(id=tgt, name="T1", ra_deg=120.0, dec_deg=20.0,
+                                           exposure_plans=[ExposurePlanSpec(exposure=120.0, desired=1, exposure_template_id=etid)])])
+    update_project(pid, spec, target_db=db, now=T0)
+
+    conn = sqlite3.connect(db)
+    cd = conn.execute("SELECT createdate FROM project WHERE Id = ?", (pid,)).fetchone()[0]
+    conn.close()
+    assert cd is not None  # repaired, not preserved-as-NULL
+
+
 def test_update_refuses_non_draft(tmp_path):
     db = _baseline(tmp_path / "t.sqlite")
     pid = export_project(_new_project(), target_db=db, now=T0).project_id  # state=1 (active)

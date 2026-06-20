@@ -431,9 +431,37 @@ def update_project(
     stable** so target-keyed rows (flathistory, etc.) are preserved; only changed
     columns/plans are touched. Mirrors the create path's INSERT shapes.
     """
+    # Update the editable fields, and self-heal any NINA-required column that is
+    # NULL (COALESCE keeps existing values). NINA's EF model treats these as
+    # non-nullable; a NULL (e.g. from a row written by an older/buggy version)
+    # crashes Target Scheduler's project load (bead nil). Editing repairs it.
     conn.execute(
-        "UPDATE project SET name = ?, description = ?, priority = ? WHERE Id = ?",
-        (spec.name, spec.description, spec.priority, project_id),
+        "UPDATE project SET name = ?, description = ?, priority = ?,"
+        " createdate = COALESCE(createdate, ?),"
+        " minimumtime = COALESCE(minimumtime, ?),"
+        " minimumaltitude = COALESCE(minimumaltitude, ?),"
+        " usecustomhorizon = COALESCE(usecustomhorizon, ?),"
+        " horizonoffset = COALESCE(horizonoffset, ?),"
+        " meridianwindow = COALESCE(meridianwindow, ?),"
+        " filterswitchfrequency = COALESCE(filterswitchfrequency, ?),"
+        " ditherevery = COALESCE(ditherevery, ?),"
+        " enablegrader = COALESCE(enablegrader, ?)"
+        " WHERE Id = ?",
+        (
+            spec.name,
+            spec.description,
+            spec.priority,
+            int(time.time()),  # createdate
+            30,                # minimumtime
+            0.0,               # minimumaltitude
+            0,                 # usecustomhorizon
+            0.0,               # horizonoffset
+            0,                 # meridianwindow
+            0,                 # filterswitchfrequency
+            0,                 # ditherevery
+            1,                 # enablegrader
+            project_id,
+        ),
     )
 
     # Rule weights: set each provided weight by name; ensure all 8 NINA rules exist
