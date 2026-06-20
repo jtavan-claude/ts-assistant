@@ -397,7 +397,14 @@
   cursor: grabbing;
 }
 .oeo-dragging {
-  opacity: 0.5;
+  opacity: 0.4;
+}
+/* Insertion indicator showing where a dragged step will land. */
+.oeo-drop-before {
+  box-shadow: inset 0 2px 0 0 var(--accent);
+}
+.oeo-drop-after {
+  box-shadow: inset 0 -2px 0 0 var(--accent);
 }
 .oeo-num {
   width: 18px;

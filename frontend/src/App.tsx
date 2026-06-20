@@ -89,6 +89,7 @@ export default function App() {
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const templateResolverRef = useRef<((t: ExposureTemplate | null) => void) | null>(null);
   const aladinRef = useRef<AladinHandle>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     fetchSurveys()
@@ -329,6 +330,8 @@ export default function App() {
     setPlaceMode(null);
     setSaveResult(null);
     focusOnTargets(project.targets); // center the project in the viewport
+    // Scroll the sidebar to the top so the builder (now in edit mode) is visible.
+    sidebarRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // Delete the project currently being edited (guarded server-side: Draft + no
@@ -739,7 +742,7 @@ export default function App() {
       )}
 
       <div className="body">
-        <aside className="sidebar">
+        <aside className="sidebar" ref={sidebarRef}>
           <EquipmentPanel profileId={activeProfileId} onFovChange={setFovSize} />
           <PlanTemplatesPanel
             templates={visibleTemplates}

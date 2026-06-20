@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
 import type { OverrideStep } from "../api";
 import type { ExposurePlanDraft } from "./ProjectBuilder";
 
@@ -23,14 +23,39 @@ function planLabel(p: ExposurePlanDraft | undefined, idx: number): string {
  */
 export default function OverrideOrderEditor({ steps, plans, onChange, open }: Props) {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
-  // Move the step at `from` to position `to` (drag-and-drop reordering).
-  const reorder = (from: number, to: number) => {
-    if (from === to) return;
+  // The insertion gap (0..length) the drop would land at — drives the drop indicator.
+  const [dropPos, setDropPos] = useState<number | null>(null);
+
+  const clearDrag = () => {
+    setDragIdx(null);
+    setDropPos(null);
+  };
+
+  // Drop the dragged item into gap `gap` (accounts for its own removal shifting indices).
+  const dropAt = (from: number, gap: number) => {
+    const target = from < gap ? gap - 1 : gap;
+    if (target === from) return;
     const next = steps.slice();
     const [it] = next.splice(from, 1);
-    next.splice(to, 0, it);
+    next.splice(target, 0, it);
     onChange(next);
   };
+
+  const onRowDragOver = (e: DragEvent<HTMLDivElement>, i: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const r = e.currentTarget.getBoundingClientRect();
+    setDropPos(e.clientY < r.top + r.height / 2 ? i : i + 1); // before vs after this row
+  };
+
+  const onHandleDragStart = (e: DragEvent<HTMLSpanElement>, i: number) => {
+    // Drag the whole row as the ghost image (not just the small handle).
+    const row = (e.currentTarget as HTMLElement).closest(".oeo-row");
+    if (row) e.dataTransfer.setDragImage(row as Element, 16, (row as HTMLElement).offsetHeight / 2);
+    e.dataTransfer.effectAllowed = "move";
+    setDragIdx(i);
+  };
+
   const remove = (i: number) => onChange(steps.filter((_, k) => k !== i));
   const setRef = (i: number, ref: number) =>
     onChange(steps.map((s, k) => (k === i ? { ...s, reference_idx: ref } : s)));
@@ -50,20 +75,25 @@ export default function OverrideOrderEditor({ steps, plans, onChange, open }: Pr
 
         {steps.map((s, i) => (
           <div
-            className={"oeo-row" + (dragIdx === i ? " oeo-dragging" : "")}
+            className={
+              "oeo-row" +
+              (dragIdx === i ? " oeo-dragging" : "") +
+              (dropPos === i ? " oeo-drop-before" : "") +
+              (dropPos === steps.length && i === steps.length - 1 ? " oeo-drop-after" : "")
+            }
             key={i}
-            onDragOver={(e) => e.preventDefault()}
+            onDragOver={(e) => onRowDragOver(e, i)}
             onDrop={() => {
-              if (dragIdx !== null) reorder(dragIdx, i);
-              setDragIdx(null);
+              if (dragIdx !== null && dropPos !== null) dropAt(dragIdx, dropPos);
+              clearDrag();
             }}
           >
             <span
               className="oeo-handle"
               title="Drag to reorder"
               draggable
-              onDragStart={() => setDragIdx(i)}
-              onDragEnd={() => setDragIdx(null)}
+              onDragStart={(e) => onHandleDragStart(e, i)}
+              onDragEnd={clearDrag}
             >
               ⠿
             </span>
