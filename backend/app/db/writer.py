@@ -106,6 +106,23 @@ class WriteResult(BaseModel):
     target_ids: list[int]
     plan_ids: list[int]
     template_ids: dict[str, int]  # filter name -> exposuretemplate.Id
+    ruleweight_ids: list[int] = Field(default_factory=list)
+
+
+# NINA creates one ruleweight row per scoring rule for EVERY project (these 8 rules
+# with these default weights — identical across all real projects). A project with NO
+# ruleweights crashes Target Scheduler's scheduler when it scores it, so the writer
+# seeds them exactly like NINA does (bead nil). (name, weight) pairs:
+DEFAULT_RULE_WEIGHTS: tuple[tuple[str, float], ...] = (
+    ("Meridian Flip Penalty", 0.0),
+    ("Meridian Window Priority", 75.0),
+    ("Mosaic Completion", 0.0),
+    ("Percent Complete", 50.0),
+    ("Project Priority", 50.0),
+    ("Setting Soonest", 50.0),
+    ("Smart Exposure Order", 0.0),
+    ("Target Switch Penalty", 67.0),
+)
 
 
 # The columns each INSERT below populates — the writer's column contract, used by
@@ -136,6 +153,8 @@ WRITTEN_COLUMNS: dict[str, frozenset[str]] = {
             "targetid", "exposureTemplateId", "enabled", "guid",
         }
     ),
+    # ruleweight has no guid column; one row per scoring rule per project.
+    "ruleweight": frozenset({"name", "weight", "projectid"}),
 }
 
 # Full column set written by write_exposure_template (qiz.5). Kept separate from the
@@ -214,6 +233,15 @@ def write_project(conn: sqlite3.Connection, spec: ProjectSpec) -> WriteResult:
     )
     project_id = int(pcur.lastrowid)
 
+    # Seed NINA's default scoring rules; a project without them crashes Target Scheduler.
+    ruleweight_ids: list[int] = []
+    for rname, rweight in DEFAULT_RULE_WEIGHTS:
+        rcur = conn.execute(
+            "INSERT INTO ruleweight (name, weight, projectid) VALUES (?, ?, ?)",
+            (rname, rweight, project_id),
+        )
+        ruleweight_ids.append(int(rcur.lastrowid))
+
     templates: dict[str, int] = {}
     target_ids: list[int] = []
     plan_ids: list[int] = []
@@ -271,6 +299,7 @@ def write_project(conn: sqlite3.Connection, spec: ProjectSpec) -> WriteResult:
         target_ids=target_ids,
         plan_ids=plan_ids,
         template_ids=templates,
+        ruleweight_ids=ruleweight_ids,
     )
 
 
