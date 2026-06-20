@@ -326,6 +326,27 @@ def test_foreign_key_integrity(tmp_path):
     conn.close()
 
 
+def test_project_required_columns_not_null(tmp_path):
+    """Regression (bead nil): these project columns are nullable in SQLite but
+    non-nullable in NINA's EF model. A NULL here makes NINA's projects query throw
+    and ALL projects vanish, so the writer must populate every one of them."""
+    db = _baseline(tmp_path / "t.sqlite")
+    res = export_project(_new_project(), target_db=db, now=T0)
+    conn = sqlite3.connect(db)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute(
+        "SELECT * FROM project WHERE Id = ?", (res.project_id,)
+    ).fetchone()
+    conn.close()
+    required = [
+        "createdate", "minimumtime", "minimumaltitude", "usecustomhorizon",
+        "horizonoffset", "meridianwindow", "filterswitchfrequency", "ditherevery",
+        "enablegrader",
+    ]
+    nulls = [c for c in required if row[c] is None]
+    assert not nulls, f"NINA-required project columns left NULL: {nulls}"
+
+
 # --- provenance + undo -----------------------------------------------------
 
 def test_provenance_records_our_rows(tmp_path):

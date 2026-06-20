@@ -18,6 +18,7 @@ provided connection); the transactional/backup wrapper is mh3.2.
 from __future__ import annotations
 
 import sqlite3
+import time
 import uuid
 from pathlib import Path
 
@@ -112,7 +113,16 @@ class WriteResult(BaseModel):
 # with the INSERT statements in write_project/_ensure_template.
 WRITTEN_COLUMNS: dict[str, frozenset[str]] = {
     "project": frozenset(
-        {"profileId", "name", "description", "state", "priority", "isMosaic", "guid"}
+        {
+            "profileId", "name", "description", "state", "priority", "isMosaic",
+            # NINA's Target Scheduler EF model maps these to NON-nullable .NET types,
+            # so leaving them NULL makes EF throw while materializing the project list
+            # → every project vanishes in NINA (bead nil). They're nullable in SQLite,
+            # so we must populate them ourselves with NINA's Project defaults.
+            "createdate", "minimumtime", "minimumaltitude", "usecustomhorizon",
+            "horizonoffset", "meridianwindow", "filterswitchfrequency", "ditherevery",
+            "enablegrader", "guid",
+        }
     ),
     "target": frozenset(
         {"name", "active", "ra", "dec", "epochcode", "rotation", "roi", "projectid", "guid"}
@@ -173,9 +183,16 @@ def _ensure_template(
 
 def write_project(conn: sqlite3.Connection, spec: ProjectSpec) -> WriteResult:
     """Insert a project, its targets, and their exposure plans. Does not commit."""
+    # NINA fills these project columns at the app layer (they're nullable in SQLite
+    # but non-nullable in its EF model). We must write them too, or NINA's projects
+    # query throws on the NULLs and shows no projects at all (bead nil). Values are
+    # NINA's own Project defaults; createdate is stored as Unix seconds like NINA.
     pcur = conn.execute(
-        "INSERT INTO project (profileId, name, description, state, priority, isMosaic, guid)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO project"
+        " (profileId, name, description, state, priority, isMosaic,"
+        "  createdate, minimumtime, minimumaltitude, usecustomhorizon, horizonoffset,"
+        "  meridianwindow, filterswitchfrequency, ditherevery, enablegrader, guid)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             spec.profile_id,
             spec.name,
@@ -183,6 +200,15 @@ def write_project(conn: sqlite3.Connection, spec: ProjectSpec) -> WriteResult:
             spec.state,
             spec.priority,
             1 if spec.is_mosaic else 0,
+            int(time.time()),  # createdate (Unix seconds)
+            30,                # minimumtime (minutes)
+            0.0,               # minimumaltitude
+            0,                 # usecustomhorizon (false)
+            0.0,               # horizonoffset
+            0,                 # meridianwindow
+            0,                 # filterswitchfrequency
+            0,                 # ditherevery (0 = off)
+            1,                 # enablegrader (true)
             _guid(),
         ),
     )
