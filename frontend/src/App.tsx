@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createExport,
+  updateExport,
   createExposureTemplate,
   createPlanTemplate,
   deletePlanTemplate,
@@ -73,6 +74,9 @@ export default function App() {
   const [showNamed, setShowNamed] = useState(false);
   const [fovSize, setFovSize] = useState<FovBox | null>(null);
   const [projectDraft, setProjectDraft] = useState<ProjectDraft | null>(null);
+  // Non-null while editing an existing project (o2c): its DB id, so Save does an
+  // in-place update (PUT) instead of creating a new project.
+  const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
   const [placeMode, setPlaceMode] = useState<PlaceMode>(null);
   const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<{ ok: boolean; message: string } | null>(
@@ -195,9 +199,32 @@ export default function App() {
     });
   }, [projectDraft, fovSize]);
 
+  // A viewport FOV that frames a single target in context — the target (≈ one rig
+  // frame) fills ~20% of the view, so it's recognizable but not edge-to-edge.
+  function contextFov(): number {
+    const frame = fovSize?.widthDeg;
+    if (!frame || frame <= 0) return 3;
+    return Math.min(60, Math.max(0.5, frame * 5));
+  }
+
   function selectTarget(t: Target) {
     setSelectedTargetId(t.id);
-    setFocus({ ra: t.ra_deg, dec: t.dec_deg, fov: 3, key: Date.now() });
+    setFocus({ ra: t.ra_deg, dec: t.dec_deg, fov: contextFov(), key: Date.now() });
+  }
+
+  // Center the viewport on a group of targets (a whole project), zoomed to show all
+  // of them with margin. Falls back to single-target context zoom when they coincide.
+  function focusOnTargets(pts: { ra_deg: number; dec_deg: number }[]) {
+    if (!pts.length) return;
+    const ras = pts.map((p) => p.ra_deg);
+    const decs = pts.map((p) => p.dec_deg);
+    const meanRa = ras.reduce((a, b) => a + b, 0) / ras.length;
+    const meanDec = decs.reduce((a, b) => a + b, 0) / decs.length;
+    const cosd = Math.max(0.05, Math.cos((meanDec * Math.PI) / 180));
+    const spanRa = (Math.max(...ras) - Math.min(...ras)) * cosd;
+    const spanDec = Math.max(...decs) - Math.min(...decs);
+    const fov = Math.min(60, Math.max(contextFov(), spanRa * 1.5, spanDec * 1.5));
+    setFocus({ ra: meanRa, dec: meanDec, fov, key: Date.now() });
   }
 
   function makeTargetDraft(name: string): TargetDraft {
@@ -233,8 +260,49 @@ export default function App() {
         },
       ],
     });
+    setEditingProjectId(null);
     setPlaceMode("move");
     setSaveResult(null);
+  }
+
+  // Load an existing Draft project into the builder for editing (o2c). A saved
+  // project stores individual panes (no mosaic-grid memory), so each target loads
+  // as a 1×1 pointing; the shared exposure-plan list is taken from the first target.
+  function editProject(project: Project) {
+    const targets: TargetDraft[] = project.targets.map((t) => ({
+      id: newTargetId(),
+      dbId: t.id,
+      name: t.name,
+      centerRa: t.ra_deg,
+      centerDec: t.dec_deg,
+      cols: 1,
+      rows: 1,
+      overlapPct: 10,
+      rotationDeg: t.rotation,
+    }));
+    const firstPlans = project.targets[0]?.exposure_plans ?? [];
+    const exposurePlans = firstPlans.map((p) => ({
+      id: newTargetId(),
+      filterName: p.filter_name ?? "",
+      exposure: p.exposure ?? 120,
+      desired: p.desired,
+      exposureTemplateId: p.exposure_template_id,
+    }));
+    setProjectDraft({
+      name: project.name,
+      profileId: project.profile_id ?? activeProfileId,
+      ruleWeights:
+        project.rule_weights && project.rule_weights.length
+          ? project.rule_weights.map((w) => ({ ...w }))
+          : ruleWeightDefaults.map((w) => ({ ...w })),
+      targets,
+      activeTargetId: targets[0]?.id ?? null,
+      exposurePlans,
+    });
+    setEditingProjectId(project.id);
+    setPlaceMode(null);
+    setSaveResult(null);
+    focusOnTargets(project.targets); // center the project in the viewport
   }
 
   function addTarget() {
@@ -420,6 +488,9 @@ export default function App() {
       const mosaic = t.cols * t.rows > 1;
       for (const p of panels) {
         apiTargets.push({
+          // Carry the DB id for an existing 1×1 target so the edit updates it in
+          // place; new targets (and freshly-split mosaic panes) have no id.
+          ...(t.dbId != null && !mosaic ? { id: t.dbId } : {}),
           name: mosaic ? `${t.name} ${p.row + 1}-${p.col + 1}` : t.name,
           ra_deg: p.centerRa,
           dec_deg: p.centerDec,
@@ -434,25 +505,34 @@ export default function App() {
     setSaving(true);
     setSaveResult(null);
     try {
-      // Only send weights that differ from NINA's defaults; the backend fills the
-      // rest. Omit entirely when unchanged so default projects post a clean body.
+      const isEdit = editingProjectId != null;
+      // On create, send only weights that differ from NINA's defaults (clean body).
+      // On edit, send the full set so the project's weights match the editor exactly.
       const changedWeights = draft.ruleWeights.filter(
         (w) =>
           ruleWeightDefaults.find((d) => d.name === w.name)?.weight !== w.weight,
       );
-      const res = await createExport({
+      const ruleWeightsBody = isEdit
+        ? { rule_weights: draft.ruleWeights }
+        : changedWeights.length
+          ? { rule_weights: changedWeights }
+          : {};
+      const req = {
         profile_id: draft.profileId.trim(),
         name,
         is_mosaic: isMosaic,
         targets: apiTargets,
-        ...(changedWeights.length ? { rule_weights: changedWeights } : {}),
-      });
+        ...ruleWeightsBody,
+      };
+      const res = isEdit
+        ? await updateExport(editingProjectId, req)
+        : await createExport(req);
 
       // Surface the just-created project in the list so the user sees it land; its
       // targets also appear on the sky. In staging mode the read path doesn't load
       // the staging DB, so this is optimistic + session-local; in live mode the next
       // reload reads it back from the real DB.
-      const created: Project = {
+      const built: Project = {
         id: res.project_id,
         name,
         description: null,
@@ -481,20 +561,26 @@ export default function App() {
             exposure_template_id: p.exposure_template_id ?? null,
           })),
         })),
+        rule_weights: draft.ruleWeights.map((w) => ({ ...w })),
       };
-      setProjects((prev) => [created, ...prev]);
+      // Edit replaces the project in place; create prepends the new one.
+      setProjects((prev) =>
+        isEdit ? prev.map((p) => (p.id === editingProjectId ? built : p)) : [built, ...prev],
+      );
 
       const targetCount = res.counts.target ?? apiTargets.length;
       const file = res.target_db.split(/[/\\]/).pop();
+      const verb = isEdit ? "Updated" : "Saved";
       setSaveResult({
         ok: true,
         message:
           health?.mode === "LIVE"
-            ? `Saved “${name}” (${targetCount} target(s)) to your live Target Scheduler database, backup taken.`
-            : `Saved “${name}” (${targetCount} target(s)) to staging DB “${file}”, backup taken. Import it into NINA to use it.`,
+            ? `${verb} “${name}” (${targetCount} target(s)) in your live Target Scheduler database, backup taken.`
+            : `${verb} “${name}” (${targetCount} target(s)) in staging DB “${file}”, backup taken. Import it into NINA to use it.`,
       });
       // Return to the New-project state so another can be started; keep the message.
       setProjectDraft(null);
+      setEditingProjectId(null);
       setPlaceMode(null);
     } catch (e) {
       setSaveResult({ ok: false, message: e instanceof Error ? e.message : String(e) });
@@ -605,11 +691,13 @@ export default function App() {
             templates={visibleTemplates}
             planTemplates={planTemplates}
             saving={saving}
+            editing={editingProjectId != null}
             liveMode={health?.mode === "LIVE"}
             saveResult={saveResult}
             onNewProject={newProject}
             onDiscard={() => {
               setProjectDraft(null);
+              setEditingProjectId(null);
               setPlaceMode(null);
               setSaveResult(null);
             }}
@@ -645,6 +733,7 @@ export default function App() {
             projects={visibleProjects}
             selectedTargetId={selectedTargetId}
             onSelectTarget={selectTarget}
+            onEditProject={editProject}
           />
         </aside>
         <main className="sky">

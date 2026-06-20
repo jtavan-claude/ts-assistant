@@ -6,6 +6,8 @@ import type { FovBox, PlaceMode } from "../sky/AladinView";
 /** One target being framed: a single pointing (1×1) or a mosaic (N×M panes). */
 export interface TargetDraft {
   id: string;
+  /** Existing DB target id when editing a saved project (o2c); undefined for new. */
+  dbId?: number;
   name: string;
   centerRa: number;
   centerDec: number;
@@ -48,6 +50,8 @@ interface Props {
   /** Saved exposure plan templates; applying one fills the plans in a single pick. */
   planTemplates: PlanTemplate[];
   saving: boolean;
+  /** True when editing an existing project (o2c) rather than creating a new one. */
+  editing: boolean;
   /** True when the backend writes the real DB (live mode) vs a staging copy. */
   liveMode: boolean;
   saveResult: { ok: boolean; message: string } | null;
@@ -87,6 +91,7 @@ export default function ProjectBuilder({
   templates,
   planTemplates,
   saving,
+  editing,
   liveMode,
   saveResult,
   onNewProject,
@@ -133,6 +138,7 @@ export default function ProjectBuilder({
     <details className="project-builder" open>
       <summary>
         <span className="eq-title">Project</span>
+        {draft && editing && <span className="rw-edited">editing</span>}
         {draft && (
           <span className="eq-fov">
             {draft.targets.length} target{draft.targets.length === 1 ? "" : "s"}
@@ -428,7 +434,11 @@ export default function ProjectBuilder({
                   : "Needs a name, a target, and an exposure plan with a template"
               }
             >
-              {saving ? "Saving…" : "Save to database"}
+              {saving
+                ? "Saving…"
+                : editing
+                  ? "Save changes"
+                  : "Save to database"}
             </button>
             {saveResult && (
               <div className={saveResult.ok ? "eq-readout save-ok" : "eq-readout warn"}>

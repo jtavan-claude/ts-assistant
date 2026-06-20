@@ -48,6 +48,8 @@ class ExposurePlanSpec(BaseModel):
 class TargetSpec(BaseModel):
     """A single pointing. Coordinates are in DEGREES (converted to hours on write)."""
 
+    # The existing DB target Id when editing (o2c); None = a new target to insert.
+    id: int | None = None
     name: str
     ra_deg: float
     dec_deg: float
@@ -306,6 +308,186 @@ def write_project(conn: sqlite3.Connection, spec: ProjectSpec) -> WriteResult:
                 ),
             )
             plan_ids.append(int(ecur.lastrowid))
+
+    return WriteResult(
+        project_id=project_id,
+        target_ids=target_ids,
+        plan_ids=plan_ids,
+        template_ids=templates,
+        ruleweight_ids=ruleweight_ids,
+    )
+
+
+def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
+    return (
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND lower(name)=lower(?)",
+            (name,),
+        ).fetchone()
+        is not None
+    )
+
+
+def _insert_plan(
+    conn: sqlite3.Connection,
+    profile_id: str,
+    target_id: int,
+    p: ExposurePlanSpec,
+    templates: dict[str, int],
+    plan_ids: list[int],
+) -> int:
+    """Insert one exposure plan for a target (resolving its template). Mirrors the
+    plan INSERT in :func:`write_project`; shared by the in-place update path."""
+    if p.exposure_template_id is not None:
+        template_id = p.exposure_template_id
+    elif p.filter_name:
+        template_id = _ensure_template(conn, profile_id, p.filter_name, templates)
+    else:
+        raise ValueError("exposure plan needs either exposure_template_id or filter_name")
+    ecur = conn.execute(
+        "INSERT INTO exposureplan"
+        " (profileId, exposure, desired, acquired, accepted, targetid,"
+        "  exposureTemplateId, enabled, guid)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)",
+        (profile_id, p.exposure, p.desired, p.acquired, p.accepted, target_id, template_id, _guid()),
+    )
+    pid = int(ecur.lastrowid)
+    plan_ids.append(pid)
+    return pid
+
+
+def _insert_target(
+    conn: sqlite3.Connection,
+    project_id: int,
+    profile_id: str,
+    t: TargetSpec,
+    templates: dict[str, int],
+    plan_ids: list[int],
+) -> int:
+    tcur = conn.execute(
+        "INSERT INTO target (name, active, ra, dec, epochcode, rotation, roi, projectid, guid)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            t.name,
+            1 if t.active else 0,
+            t.ra_deg / 15.0,  # persist RA in HOURS
+            t.dec_deg,
+            t.epoch_code,
+            t.rotation,
+            t.roi,
+            project_id,
+            _guid(),
+        ),
+    )
+    tid = int(tcur.lastrowid)
+    for p in t.exposure_plans:
+        _insert_plan(conn, profile_id, tid, p, templates, plan_ids)
+    return tid
+
+
+def _reconcile_plans(
+    conn: sqlite3.Connection,
+    profile_id: str,
+    target_id: int,
+    plans: list[ExposurePlanSpec],
+    templates: dict[str, int],
+    plan_ids: list[int],
+) -> None:
+    """Make ``target_id``'s exposure plans match ``plans``, keyed by template Id:
+    UPDATE matching plans (exposure/desired), INSERT new, DELETE removed. Existing
+    plan rows (and their Ids) are preserved where the template is unchanged."""
+    existing = {
+        etid: pid
+        for (pid, etid) in conn.execute(
+            "SELECT Id, exposureTemplateId FROM exposureplan WHERE targetid = ?", (target_id,)
+        )
+    }
+    desired: set[int] = set()
+    for p in plans:
+        etid = p.exposure_template_id
+        if etid is not None and etid in existing:
+            conn.execute(
+                "UPDATE exposureplan SET exposure = ?, desired = ? WHERE Id = ?",
+                (p.exposure, p.desired, existing[etid]),
+            )
+            plan_ids.append(existing[etid])
+            desired.add(etid)
+        else:
+            _insert_plan(conn, profile_id, target_id, p, templates, plan_ids)
+            if etid is not None:
+                desired.add(etid)
+    for etid, pid in existing.items():
+        if etid not in desired:
+            conn.execute("DELETE FROM exposureplan WHERE Id = ?", (pid,))
+
+
+def update_project(
+    conn: sqlite3.Connection, project_id: int, spec: ProjectSpec
+) -> WriteResult:
+    """In-place edit of an existing project (o2c). Does not commit.
+
+    The caller MUST have verified the project is editable (Draft, no captured
+    progress, no filter-cadence/override-order rows). Project + target **Ids stay
+    stable** so target-keyed rows (flathistory, etc.) are preserved; only changed
+    columns/plans are touched. Mirrors the create path's INSERT shapes.
+    """
+    conn.execute(
+        "UPDATE project SET name = ?, description = ?, priority = ? WHERE Id = ?",
+        (spec.name, spec.description, spec.priority, project_id),
+    )
+
+    # Rule weights: set each provided weight by name; ensure all 8 NINA rules exist
+    # (crash-safety, bead nil). When spec carries none, existing weights are untouched.
+    existing_rules = {
+        name: rid
+        for (rid, name) in conn.execute(
+            "SELECT Id, name FROM ruleweight WHERE projectid = ?", (project_id,)
+        )
+    }
+    ruleweight_ids: list[int] = list(existing_rules.values())
+    desired_weights = {rw.name: rw.weight for rw in (spec.rule_weights or [])}
+    for rname, rdefault in DEFAULT_RULE_WEIGHTS:
+        if rname not in desired_weights and rname not in existing_rules:
+            desired_weights[rname] = rdefault  # backfill a missing default rule
+    for rname, rweight in desired_weights.items():
+        if rname in existing_rules:
+            conn.execute(
+                "UPDATE ruleweight SET weight = ? WHERE Id = ?", (rweight, existing_rules[rname])
+            )
+        else:
+            rcur = conn.execute(
+                "INSERT INTO ruleweight (name, weight, projectid) VALUES (?, ?, ?)",
+                (rname, rweight, project_id),
+            )
+            ruleweight_ids.append(int(rcur.lastrowid))
+
+    # Targets reconciled by Id: UPDATE existing, INSERT new, DELETE removed.
+    existing_targets = {
+        tid for (tid,) in conn.execute("SELECT Id FROM target WHERE projectid = ?", (project_id,))
+    }
+    templates: dict[str, int] = {}
+    target_ids: list[int] = []
+    plan_ids: list[int] = []
+    seen: set[int] = set()
+    for t in spec.targets:
+        if t.id is not None and t.id in existing_targets:
+            conn.execute(
+                "UPDATE target SET name = ?, ra = ?, dec = ?, rotation = ?, roi = ? WHERE Id = ?",
+                (t.name, t.ra_deg / 15.0, t.dec_deg, t.rotation, t.roi, t.id),
+            )
+            seen.add(t.id)
+            _reconcile_plans(conn, spec.profile_id, t.id, t.exposure_plans, templates, plan_ids)
+            target_ids.append(t.id)
+        else:
+            target_ids.append(
+                _insert_target(conn, project_id, spec.profile_id, t, templates, plan_ids)
+            )
+
+    for old in existing_targets - seen:
+        conn.execute("DELETE FROM exposureplan WHERE targetid = ?", (old,))
+        if _table_exists(conn, "flathistory"):
+            conn.execute("DELETE FROM flathistory WHERE targetId = ?", (old,))
+        conn.execute("DELETE FROM target WHERE Id = ?", (old,))
 
     return WriteResult(
         project_id=project_id,

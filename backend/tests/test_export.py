@@ -18,17 +18,20 @@ import pytest
 from app.db import backup, export, ops, provenance
 from app.db.export import (
     DatabaseBusyError,
+    EditNotAllowedError,
     ExportError,
     ProgressError,
     create_exposure_template,
     export_project,
     undo_operation,
+    update_project,
 )
 from app.db.validate import ValidationError
 from app.db.writer import (
     ExposurePlanSpec,
     ExposureTemplateSpec,
     ProjectSpec,
+    RuleWeightSpec,
     TargetSpec,
     create_scheduler_db,
     write_project,
@@ -401,6 +404,189 @@ def test_rule_weight_defaults_endpoint():
 
     body = TestClient(app).get("/api/rule-weight-defaults").json()
     assert [(r["name"], r["weight"]) for r in body] == list(DEFAULT_RULE_WEIGHTS)
+
+
+# --- o2c: in-place edit of Draft projects ----------------------------------
+
+
+def _export_draft(db):
+    """Export a fresh Draft (state=0) single-target project; return (res, conn-read helpers)."""
+    spec = ProjectSpec(
+        profile_id=PROFILE,
+        name="Draft",
+        state=0,
+        targets=[
+            TargetSpec(
+                name="T1",
+                ra_deg=120.0,
+                dec_deg=20.0,
+                exposure_plans=[ExposurePlanSpec(filter_name="L", exposure=120.0, desired=10)],
+            )
+        ],
+    )
+    return export_project(spec, target_db=db, now=T0)
+
+
+def _first_target_and_plan(db, project_id):
+    conn = sqlite3.connect(db)
+    conn.row_factory = sqlite3.Row
+    tgt = conn.execute(
+        "SELECT Id FROM target WHERE projectid = ?", (project_id,)
+    ).fetchone()["Id"]
+    plan = conn.execute(
+        "SELECT Id, exposureTemplateId, desired FROM exposureplan WHERE targetid = ?", (tgt,)
+    ).fetchone()
+    conn.close()
+    return tgt, plan["Id"], plan["exposureTemplateId"]
+
+
+def test_update_project_in_place(tmp_path):
+    db = _baseline(tmp_path / "t.sqlite")
+    res = _export_draft(db)
+    pid = res.project_id
+    tgt, plan_id, etid = _first_target_and_plan(db, pid)
+
+    spec = ProjectSpec(
+        profile_id=PROFILE,
+        name="Draft EDITED",
+        state=0,
+        rule_weights=[RuleWeightSpec(name="Project Priority", weight=88.0)],
+        targets=[
+            TargetSpec(
+                id=tgt,
+                name="T1b",
+                ra_deg=130.0,
+                dec_deg=25.0,
+                exposure_plans=[
+                    ExposurePlanSpec(exposure=120.0, desired=25, exposure_template_id=etid)
+                ],
+            )
+        ],
+    )
+    out = update_project(pid, spec, target_db=db, now=T0)
+    assert out.project_id == pid  # same project, edited in place
+
+    conn = sqlite3.connect(db)
+    conn.row_factory = sqlite3.Row
+    assert conn.execute("SELECT name FROM project WHERE Id = ?", (pid,)).fetchone()["name"] == "Draft EDITED"
+    trows = conn.execute("SELECT Id, name FROM target WHERE projectid = ?", (pid,)).fetchall()
+    assert len(trows) == 1 and trows[0]["Id"] == tgt and trows[0]["name"] == "T1b"  # Id stable
+    prow = conn.execute("SELECT Id, desired FROM exposureplan WHERE targetid = ?", (tgt,)).fetchone()
+    assert prow["Id"] == plan_id and prow["desired"] == 25  # plan updated in place
+    w = conn.execute(
+        "SELECT weight FROM ruleweight WHERE projectid = ? AND name = 'Project Priority'", (pid,)
+    ).fetchone()["weight"]
+    assert w == 88.0
+    # crash-safety invariant preserved
+    assert conn.execute("SELECT COUNT(*) FROM ruleweight WHERE projectid = ?", (pid,)).fetchone()[0] == 8
+    conn.close()
+
+
+def test_update_reconciles_added_and_removed_targets(tmp_path):
+    db = _baseline(tmp_path / "t.sqlite")
+    pid = _export_draft(db).project_id
+    tgt, _plan_id, etid = _first_target_and_plan(db, pid)
+
+    # Keep the existing target; add a brand-new one (no id).
+    spec = ProjectSpec(
+        profile_id=PROFILE,
+        name="Draft",
+        state=0,
+        targets=[
+            TargetSpec(id=tgt, name="T1", ra_deg=120.0, dec_deg=20.0,
+                       exposure_plans=[ExposurePlanSpec(exposure=120.0, desired=10, exposure_template_id=etid)]),
+            TargetSpec(name="T2 new", ra_deg=200.0, dec_deg=10.0,
+                       exposure_plans=[ExposurePlanSpec(exposure=60.0, desired=5, exposure_template_id=etid)]),
+        ],
+    )
+    update_project(pid, spec, target_db=db, now=T0)
+    conn = sqlite3.connect(db)
+    names = {r[0] for r in conn.execute("SELECT name FROM target WHERE projectid = ?", (pid,))}
+    assert names == {"T1", "T2 new"}
+
+    # Now remove the new one again.
+    spec.targets = [spec.targets[0]]
+    update_project(pid, spec, target_db=db, now=T0)
+    names = {r[0] for r in conn.execute("SELECT name FROM target WHERE projectid = ?", (pid,))}
+    assert names == {"T1"}
+    assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+    conn.close()
+
+
+def test_update_preserves_flathistory(tmp_path):
+    db = _baseline(tmp_path / "t.sqlite")
+    pid = _export_draft(db).project_id
+    tgt, _plan_id, etid = _first_target_and_plan(db, pid)
+
+    conn = sqlite3.connect(db)
+    conn.execute(
+        "INSERT INTO flathistory (targetId, profileId, flatsType, filterName) VALUES (?, ?, 'SKY', 'L')",
+        (tgt, PROFILE),
+    )
+    conn.commit()
+    conn.close()
+
+    spec = ProjectSpec(
+        profile_id=PROFILE, name="Draft", state=0,
+        targets=[TargetSpec(id=tgt, name="T1", ra_deg=120.0, dec_deg=20.0,
+                            exposure_plans=[ExposurePlanSpec(exposure=120.0, desired=99, exposure_template_id=etid)])],
+    )
+    update_project(pid, spec, target_db=db, now=T0)
+
+    conn = sqlite3.connect(db)
+    n = conn.execute("SELECT COUNT(*) FROM flathistory WHERE targetId = ?", (tgt,)).fetchone()[0]
+    conn.close()
+    assert n == 1  # target Id stable → flat history survives the edit
+
+
+def test_update_refuses_non_draft(tmp_path):
+    db = _baseline(tmp_path / "t.sqlite")
+    pid = export_project(_new_project(), target_db=db, now=T0).project_id  # state=1 (active)
+    with pytest.raises(EditNotAllowedError):
+        update_project(pid, _new_project(), target_db=db, now=T0)
+
+
+def test_update_refuses_with_progress(tmp_path):
+    db = _baseline(tmp_path / "t.sqlite")
+    pid = _export_draft(db).project_id
+    tgt, _plan_id, etid = _first_target_and_plan(db, pid)
+    conn = sqlite3.connect(db)
+    conn.execute("UPDATE exposureplan SET acquired = 3 WHERE targetid = ?", (tgt,))
+    conn.commit()
+    conn.close()
+    spec = ProjectSpec(profile_id=PROFILE, name="x", state=0,
+                       targets=[TargetSpec(id=tgt, name="T1", ra_deg=120.0, dec_deg=20.0,
+                                           exposure_plans=[ExposurePlanSpec(exposure=120.0, desired=1, exposure_template_id=etid)])])
+    with pytest.raises(ProgressError):
+        update_project(pid, spec, target_db=db, now=T0)
+
+
+def test_update_refuses_with_filter_cadence(tmp_path):
+    db = _baseline(tmp_path / "t.sqlite")
+    pid = _export_draft(db).project_id
+    tgt, _plan_id, etid = _first_target_and_plan(db, pid)
+    conn = sqlite3.connect(db)
+    conn.execute(
+        'INSERT INTO filtercadenceitem (targetid, "order", action) VALUES (?, 1, 0)', (tgt,)
+    )
+    conn.commit()
+    conn.close()
+    spec = ProjectSpec(profile_id=PROFILE, name="x", state=0,
+                       targets=[TargetSpec(id=tgt, name="T1", ra_deg=120.0, dec_deg=20.0,
+                                           exposure_plans=[ExposurePlanSpec(exposure=120.0, desired=1, exposure_template_id=etid)])])
+    with pytest.raises(EditNotAllowedError):
+        update_project(pid, spec, target_db=db, now=T0)
+
+
+def test_update_refuses_unknown_project(tmp_path):
+    db = _baseline(tmp_path / "t.sqlite")
+    spec = ProjectSpec(
+        profile_id=PROFILE, name="x", state=0,
+        targets=[TargetSpec(name="T", ra_deg=1.0, dec_deg=1.0,
+                            exposure_plans=[ExposurePlanSpec(filter_name="L", exposure=1.0)])],
+    )
+    with pytest.raises(EditNotAllowedError):
+        update_project(99999, spec, target_db=db, now=T0)
 
 
 # --- provenance + undo -----------------------------------------------------

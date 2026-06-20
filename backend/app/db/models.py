@@ -39,6 +39,13 @@ class Target(BaseModel):
     exposure_plans: list[ExposurePlan] = []
 
 
+class RuleWeight(BaseModel):
+    """One scoring-rule weight for a project (used by the planner)."""
+
+    name: str
+    weight: float
+
+
 class Project(BaseModel):
     id: int
     name: str
@@ -48,6 +55,7 @@ class Project(BaseModel):
     priority: int | None = None
     is_mosaic: bool = False
     targets: list[Target] = []
+    rule_weights: list[RuleWeight] = []
 
 
 class ExposureTemplate(BaseModel):
