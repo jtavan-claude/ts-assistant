@@ -82,7 +82,34 @@ CREATE TABLE exposureplan (
     FOREIGN KEY (ExposureTemplateId) REFERENCES exposuretemplate (Id),
     FOREIGN KEY (TargetId) REFERENCES target (Id) ON DELETE CASCADE
 );
+CREATE TABLE ruleweight (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    weight REAL NOT NULL,
+    projectid INTEGER NOT NULL,
+    FOREIGN KEY (projectid) REFERENCES project (Id) ON DELETE CASCADE
+);
 """
+
+# NINA's 8 scoring rules with their default weights (mirrors writer.DEFAULT_RULE_WEIGHTS).
+FIXTURE_RULE_WEIGHTS = (
+    ("Meridian Flip Penalty", 0.0),
+    ("Meridian Window Priority", 75.0),
+    ("Mosaic Completion", 0.0),
+    ("Percent Complete", 50.0),
+    ("Project Priority", 50.0),
+    ("Setting Soonest", 50.0),
+    ("Smart Exposure Order", 0.0),
+    ("Target Switch Penalty", 67.0),
+)
+
+
+def _seed_rule_weights(conn, project_id: int) -> None:
+    for name, weight in FIXTURE_RULE_WEIGHTS:
+        conn.execute(
+            "INSERT INTO ruleweight (name, weight, projectid) VALUES (?, ?, ?)",
+            (name, weight, project_id),
+        )
 
 PROFILE = "11111111-1111-1111-1111-111111111111"
 
@@ -131,6 +158,7 @@ def build(path: Path) -> None:
                 " ExposureTemplateId, TargetId) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (PROFILE, 300.0, 30, 12, 10, tmpl_ids[filt], tid),
             )
+    _seed_rule_weights(conn, p1)
 
     # Project 2: a single target (state=draft).
     cur = conn.execute(
@@ -150,6 +178,7 @@ def build(path: Path) -> None:
         " VALUES (?, ?, ?, ?, ?)",
         (PROFILE, 180.0, 60, tmpl_ids["Ha"], tcur.lastrowid),
     )
+    _seed_rule_weights(conn, p2)
 
     conn.commit()
     conn.close()

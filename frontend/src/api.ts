@@ -49,6 +49,7 @@ export interface Project {
   priority: number | null;
   is_mosaic: boolean;
   targets: Target[];
+  rule_weights?: RuleWeight[];
 }
 
 export interface ExposureTemplate {
@@ -183,6 +184,8 @@ export interface ExportPlanInput {
 }
 
 export interface ExportTargetInput {
+  /** Existing DB target id when editing (o2c); omitted for new targets. */
+  id?: number;
   name: string;
   ra_deg: number;
   dec_deg: number;
@@ -231,8 +234,30 @@ async function postWithDetail<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// PUT variant of postWithDetail, surfacing the backend's error `detail` (409/422/…).
+async function putWithDetail<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try {
+      const j = await res.json();
+      if (j && typeof j.detail === "string") msg = j.detail;
+    } catch {
+      /* non-JSON body */
+    }
+    throw new Error(msg);
+  }
+  return res.json() as Promise<T>;
+}
+
 export const createExport = (req: ExportRequest) =>
   postWithDetail<ExportResult>("/export", req);
+export const updateExport = (projectId: number, req: ExportRequest) =>
+  putWithDetail<ExportResult>(`/export/${projectId}`, req);
 
 // Append ?profile_id= only when a profile is active, so the param stays optional.
 const scoped = (path: string, profileId?: string) =>

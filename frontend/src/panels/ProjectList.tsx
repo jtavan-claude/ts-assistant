@@ -4,6 +4,17 @@ interface Props {
   projects: Project[];
   selectedTargetId: number | null;
   onSelectTarget: (t: Target) => void;
+  /** Load a Draft, no-progress project into the builder for editing (o2c). */
+  onEditProject: (p: Project) => void;
+}
+
+/** A project is safely editable when it's a Draft with no captured frames. The
+ * backend re-checks (and also refuses custom cadence/order); this is the UI gate. */
+function isEditable(p: Project): boolean {
+  return (
+    p.state === "draft" &&
+    p.targets.every((t) => t.exposure_plans.every((pl) => pl.acquired === 0))
+  );
 }
 
 /** Roll exposure plans up into acquisition totals. `pending` is frames still
@@ -40,6 +51,7 @@ export default function ProjectList({
   projects,
   selectedTargetId,
   onSelectTarget,
+  onEditProject,
 }: Props) {
   return (
     <details className="projects-panel" open>
@@ -66,6 +78,18 @@ export default function ProjectList({
                   className="proj-prog"
                 />
                 <span className="count">{p.targets.length}</span>
+                {isEditable(p) && (
+                  <button
+                    className="proj-edit"
+                    title="Edit this Draft project"
+                    onClick={(e) => {
+                      e.preventDefault(); // don't toggle the <details>
+                      onEditProject(p);
+                    }}
+                  >
+                    ✎
+                  </button>
+                )}
               </summary>
               <ul>
                 {p.targets.map((t) => (

@@ -45,6 +45,7 @@ from .writer import (
     ProjectSpec,
     WriteResult,
     create_scheduler_db,
+    update_project as writer_update_project,
     write_exposure_template,
     write_project,
 )
@@ -70,6 +71,10 @@ class DatabaseBusyError(ExportError):
 
 class ProgressError(ExportError):
     """Refused because the affected project has captured subframes."""
+
+
+class EditNotAllowedError(ExportError):
+    """Refused to edit a project that isn't a safely-editable Draft (o2c)."""
 
 
 class ExportResult(BaseModel):
@@ -416,6 +421,120 @@ def _delete_provenanced_rows(conn: sqlite3.Connection, rows: list[ProvRow]) -> d
                 continue  # already gone
             deleted[table] = deleted.get(table, 0) + cur.rowcount
     return deleted
+
+
+def _assert_editable(conn: sqlite3.Connection, project_id: int) -> None:
+    """Refuse unless the project is a safely-editable Draft (o2c). Must run inside
+    the write txn, before any UPDATE."""
+    row = conn.execute("SELECT state FROM project WHERE Id = ?", (project_id,)).fetchone()
+    if row is None:
+        raise EditNotAllowedError(f"project {project_id} not found")
+    if int(row["state"]) != 0:
+        raise EditNotAllowedError("only Draft projects can be edited")
+    if has_progress(conn, project_id):
+        raise ProgressError(
+            f"project {project_id} has captured subframes; refusing to edit started work"
+        )
+    # filtercadence / override-order reference a target's plans by positional index, so
+    # editing plans would corrupt them — refuse rather than silently break them.
+    tids = [r[0] for r in conn.execute("SELECT Id FROM target WHERE projectid = ?", (project_id,))]
+    if tids:
+        placeholders = ",".join("?" * len(tids))
+        for table in ("filtercadenceitem", "overrideexposureorderitem"):
+            exists = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND lower(name)=?", (table,)
+            ).fetchone()
+            if not exists:
+                continue
+            n = conn.execute(
+                f"SELECT COUNT(*) FROM {table} WHERE targetid IN ({placeholders})", tids
+            ).fetchone()[0]
+            if n:
+                raise EditNotAllowedError(
+                    "this project uses a custom filter cadence or exposure order, which "
+                    "TS Assistant can't edit yet"
+                )
+
+
+def update_project(
+    project_id: int,
+    spec: ProjectSpec,
+    *,
+    target_db: str | Path | None = None,
+    backup_window_min: int | None = None,
+    validate: Callable[[sqlite3.Connection, ProjectSpec], None] | None = None,
+    now: datetime | None = None,
+) -> ExportResult:
+    """Edit an existing Draft project in place (o2c) through the full safety path.
+
+    Same backup + BEGIN IMMEDIATE + integrity + FK-check wrapper as
+    :func:`export_project`, but UPDATEs an existing project (keeping Ids stable)
+    instead of inserting a new one. NOT provenanced / not op-undoable — the
+    automatic pre-write backup is the recovery path. Refuses unless the project is a
+    Draft with no captured progress and no custom cadence/override (``_assert_editable``).
+    """
+    now = now or datetime.now(timezone.utc)
+    validate = validate or default_validate
+    target = _resolve_target(target_db)
+    live = _is_live_target(target)
+    window = 0 if live else backup_window_min  # live: back up before every write
+
+    backup = ensure_backup(target, window_min=window, now=now, live=live)
+    operation_id = "op_" + uuid.uuid4().hex
+
+    conn = sqlite3.connect(target, isolation_level=None, timeout=CONNECT_TIMEOUT)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA foreign_keys = ON")
+        if live or integrity_check_enabled():  # verify before locking (don't block NINA)
+            chk = conn.execute("PRAGMA quick_check").fetchone()[0]
+            if chk != "ok":
+                raise ExportError(f"quick_check failed before write: {chk}")
+
+        conn.execute("BEGIN IMMEDIATE")
+        _assert_editable(conn, project_id)
+        validate(conn, spec)  # schema/profile compatibility (reused create-path gate)
+        result = writer_update_project(conn, project_id, spec)
+        fk = conn.execute("PRAGMA foreign_key_check").fetchall()
+        if fk:
+            raise ExportError(f"foreign key violations: {fk[:5]}")
+        conn.commit()
+        project_guid = _guid(conn, "project", result.project_id)
+    except sqlite3.OperationalError as e:
+        conn.rollback()
+        raise _busy_or_export_error(e) from e
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+    target_key = str(target.resolve())
+    set_target_state(target_key, last_seen_signature=backup_signature(target))
+    counts = {"target": len(result.target_ids), "exposureplan": len(result.plan_ids)}
+    record_op(
+        OpLogEntry(
+            operation_id=operation_id,
+            written_at=now.isoformat(),
+            kind="update",
+            target_db=target_key,
+            backup_path=backup.path,
+            status="committed",
+            project_guid=project_guid,
+            counts=counts,
+        )
+    )
+    return ExportResult(
+        operation_id=operation_id,
+        target_db=target_key,
+        backup_path=backup.path,
+        project_id=result.project_id,
+        project_guid=project_guid,
+        target_ids=result.target_ids,
+        plan_ids=result.plan_ids,
+        template_ids=result.template_ids,
+        counts=counts,
+    )
 
 
 def undo_operation(

@@ -87,6 +87,15 @@ def test_loads_exposure_templates(reader):
     assert ha.moon_avoidance_separation == pytest.approx(0.0)
 
 
+def test_loads_rule_weights(reader):
+    from tests.make_fixture import FIXTURE_RULE_WEIGHTS
+
+    projects = {p.name: p for p in reader.load_projects()}
+    rw = {w.name: w.weight for w in projects["M31 Andromeda"].rule_weights}
+    assert rw == {name: weight for name, weight in FIXTURE_RULE_WEIGHTS}
+    assert len(rw) == 8
+
+
 def test_schema_info(reader):
     info = reader.schema_info()
     assert info.db_present is True

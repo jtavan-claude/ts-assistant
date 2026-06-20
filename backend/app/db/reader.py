@@ -17,6 +17,7 @@ from .models import (
     ExposurePlan,
     ExposureTemplate,
     Project,
+    RuleWeight,
     SchemaInfo,
     Target,
 )
@@ -90,10 +91,23 @@ def load_projects_conn(conn: sqlite3.Connection) -> list[Project]:
     t_target = _find_table(tables, "target")
     t_plan = _find_table(tables, "exposureplan", "exposure_plan")
     t_template = _find_table(tables, "exposuretemplate", "exposure_template")
+    t_ruleweight = _find_table(tables, "ruleweight", "rule_weight")
     if not t_project or not t_target:
         return []
 
     filter_by_template = _template_filter_map(conn, t_template)
+
+    # Rule weights grouped by project (the planner's scoring knobs; o2c edits them).
+    weights_by_project: dict[int, list[RuleWeight]] = {}
+    if t_ruleweight:
+        for r in conn.execute(f'SELECT * FROM "{t_ruleweight}"'):
+            pid = _row_get(r, "ProjectId", "projectId", "projectid")
+            name = _row_get(r, "name")
+            if pid is None or name is None:
+                continue
+            weights_by_project.setdefault(int(pid), []).append(
+                RuleWeight(name=str(name), weight=float(_row_get(r, "weight", default=0.0) or 0.0))
+            )
 
     # Exposure plans grouped by target id.
     plans_by_target: dict[int, list[ExposurePlan]] = {}
@@ -128,6 +142,7 @@ def load_projects_conn(conn: sqlite3.Connection) -> list[Project]:
             state=_state_label(_row_get(r, "state", "state_col")),
             priority=_row_get(r, "priority", "priority_col"),
             is_mosaic=bool(_row_get(r, "isMosaic", default=0)),
+            rule_weights=weights_by_project.get(pid, []),
         )
 
     for r in conn.execute(f'SELECT * FROM "{t_target}"'):

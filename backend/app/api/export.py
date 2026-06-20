@@ -19,12 +19,14 @@ from fastapi import APIRouter, HTTPException
 
 from ..db.export import (
     DatabaseBusyError,
+    EditNotAllowedError,
     ExportError,
     ExportResult,
     ProgressError,
     UndoResult,
     export_project,
     undo_operation,
+    update_project,
 )
 from ..db.validate import ValidationError
 from ..db.writer import ProjectSpec
@@ -40,6 +42,19 @@ def create_export(spec: ProjectSpec) -> ExportResult:
     except ValidationError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except (DatabaseBusyError, ProgressError) as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except ExportError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.put("/export/{project_id}", response_model=ExportResult)
+def edit_export(project_id: int, spec: ProjectSpec) -> ExportResult:
+    """Edit an existing Draft project in place (o2c); refused unless safely editable."""
+    try:
+        return update_project(project_id, spec)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except (DatabaseBusyError, ProgressError, EditNotAllowedError) as e:
         raise HTTPException(status_code=409, detail=str(e))
     except ExportError as e:
         raise HTTPException(status_code=400, detail=str(e))
