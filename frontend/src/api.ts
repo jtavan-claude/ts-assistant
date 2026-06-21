@@ -28,6 +28,8 @@ export interface ExposurePlan {
   acquired: number;
   accepted: number;
   exposure_template_id: number | null;
+  /** Target Scheduler's per-plan enable flag; a disabled plan is skipped. */
+  enabled: boolean;
 }
 
 /** One step of an override exposure order (awh). action 0 = expose the plan at
@@ -191,6 +193,8 @@ export interface Health {
   /** Why writes would fail, when db_writable is false. */
   write_error: string | null;
   error: string | null;
+  /** Cheap source-DB change token (size + mtime); polled to auto-refresh (kfc). */
+  db_version: string | null;
 }
 
 async function getJSON<T>(path: string): Promise<T> {
@@ -343,11 +347,54 @@ export async function deleteProject(projectId: number): Promise<DeleteResult> {
   return res.json() as Promise<DeleteResult>;
 }
 
+// --- exposure-plan enabled toggle (ts_assistant-ipq) -----------------------
+// Self-contained: persists a single plan's enabled flag through the backend's
+// staged-write path. PATCH that surfaces the backend's error detail (404 plan
+// gone / 409 busy / read-only) so the UI can revert + show why.
+export interface PlanEnabledResult {
+  plan_id: number;
+  enabled: boolean;
+  target_db: string;
+  backup_path: string;
+}
+
+export async function setExposurePlanEnabled(
+  planId: number,
+  enabled: boolean,
+): Promise<PlanEnabledResult> {
+  const res = await fetch(`${API_BASE}/exposure-plans/${planId}/enabled`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled }),
+  });
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try {
+      const j = await res.json();
+      if (j && typeof j.detail === "string") msg = j.detail;
+    } catch {
+      /* non-JSON body */
+    }
+    throw new Error(msg);
+  }
+  return res.json() as Promise<PlanEnabledResult>;
+}
+
 // Append ?profile_id= only when a profile is active, so the param stays optional.
 const scoped = (path: string, profileId?: string) =>
   profileId ? `${path}?profile_id=${encodeURIComponent(profileId)}` : path;
 
 export const fetchHealth = () => getJSON<Health>("/health");
+
+// --- DB change token (kfc) -------------------------------------------------
+// A cheap signature of the source Target Scheduler DB (size + mtime). The UI
+// polls this and, when it changes, refetches data in place to reflect external
+// writes (NINA acquisitions, or our own publish) without a manual reload.
+export interface DbVersion {
+  db_version: string | null;
+}
+export const fetchDbVersion = () => getJSON<DbVersion>("/db-version");
+
 export const fetchSurveys = () => getJSON<Survey[]>("/surveys");
 export const fetchProjects = () => getJSON<Project[]>("/projects");
 export const fetchProfiles = () => getJSON<ProfileInfo[]>("/profiles");
