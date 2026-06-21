@@ -57,6 +57,11 @@ export default function ProjectList({
   onEditProject,
   builder,
 }: Props) {
+  // Sort a copy alphabetically by name (case-insensitive). `.sort` is stable
+  // in modern engines, so equal-named projects keep their original order.
+  const sortedProjects = [...projects].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+  );
   return (
     <details className="projects-panel" open>
       <summary>
@@ -73,7 +78,7 @@ export default function ProjectList({
         </div>
       ) : (
         <div className="project-list">
-          {projects.map((p) => (
+          {sortedProjects.map((p) => (
             <details key={p.id} open className="project">
               <summary>
                 <span className="project-name">{p.name}</span>
