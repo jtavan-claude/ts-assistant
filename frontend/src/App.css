@@ -907,7 +907,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 1px 0;
+  /* Right padding (dsc) keeps the right-aligned accepted/desired count off the
+     column divider and inside the yellow selected-target box. */
+  padding: 1px 10px 1px 0;
   cursor: default;
 }
 .plan-enable {
@@ -940,4 +942,9 @@
 }
 .plan-prog.complete {
   color: #4ade80;
+}
+/* Captured-but-ungraded count, e.g. the "(45)" in "0 (45)/60" (vfh). Amber so it
+   reads as provisional — those frames haven't passed grading yet. */
+.prog-pending {
+  color: #ffb300;
 }

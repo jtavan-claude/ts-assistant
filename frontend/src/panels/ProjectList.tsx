@@ -23,21 +23,32 @@ function isEditable(p: Project): boolean {
 }
 
 /** Roll exposure plans up into acquisition totals. `pending` is frames still
- * needed to reach the goal by the real "done" count (accepted = passed grading). */
+ * needed to reach the goal by the real "done" count (accepted = passed grading);
+ * `pendingGrading` is captured-but-ungraded frames (could still become accepted). */
 function planTotals(plans: ExposurePlan[]) {
   let desired = 0;
   let acquired = 0;
   let accepted = 0;
+  let pendingGrading = 0;
   for (const p of plans) {
     desired += p.desired;
     acquired += p.acquired;
     accepted += p.accepted;
+    pendingGrading += p.pending_grading ?? 0;
   }
-  return { desired, acquired, accepted, pending: Math.max(0, desired - accepted) };
+  return {
+    desired,
+    acquired,
+    accepted,
+    pendingGrading,
+    pending: Math.max(0, desired - accepted),
+  };
 }
 
-/** Compact "accepted/desired" completion badge, green once the goal is met.
- * Hover shows the fuller desired/acquired/accepted/pending breakdown. */
+/** Compact completion badge, green once the goal is met. Shows "accepted/desired",
+ * or "accepted (pending)/desired" when frames are captured but not yet graded — e.g.
+ * "0 (45)/60" — so a not-yet-graded run doesn't look like no progress at all.
+ * Hover shows the fuller desired/acquired/accepted/captured-ungraded/pending breakdown. */
 function Completion({ plans, className }: { plans: ExposurePlan[]; className: string }) {
   const t = planTotals(plans);
   if (!t.desired) return null;
@@ -45,9 +56,16 @@ function Completion({ plans, className }: { plans: ExposurePlan[]; className: st
   return (
     <span
       className={className + (done ? " complete" : "")}
-      title={`desired ${t.desired} · acquired ${t.acquired} · accepted ${t.accepted} · ${t.pending} to go`}
+      title={
+        `desired ${t.desired} · acquired ${t.acquired} · accepted ${t.accepted}` +
+        ` · ${t.pendingGrading} awaiting grading · ${t.pending} to go`
+      }
     >
-      {t.accepted}/{t.desired}
+      {t.accepted}
+      {t.pendingGrading > 0 && (
+        <span className="prog-pending"> ({t.pendingGrading})</span>
+      )}
+      /{t.desired}
     </span>
   );
 }
@@ -118,7 +136,9 @@ export default function ProjectList({
       ) : (
         <div className="project-list">
           {sortedProjects.map((p) => (
-            <details key={p.id} open className="project">
+            // Start collapsed (5co): per-filter rows make each project tall, so an
+            // all-expanded list is too long to scan — expand only what you open.
+            <details key={p.id} className="project">
               <summary>
                 <span className="project-name">{p.name}</span>
                 <span className={`badge state-${p.state}`}>{p.state}</span>
