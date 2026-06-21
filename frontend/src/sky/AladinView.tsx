@@ -293,16 +293,23 @@ function AladinView(
       aladin.addOverlay(namedCircles);
       namedCircleRef.current = namedCircles;
 
+      // Purely decorative annotations: the named-object labels must not respond to
+      // hover (no highlight) and must not be clickable/selectable. Aladin has no
+      // per-catalog "disable interaction" flag (every catalog source is hit-tested
+      // for hover/click), so we follow the same non-interactive label recipe the
+      // FOV-box and draft-box label catalogs use: no `onClick` (so a click runs no
+      // popup/select action) and a 1px source marker (no hover/selection highlight,
+      // matching the extent-ring decorative layer). The text label and its color
+      // are unchanged — only the marker's interactivity is removed.
       const namedLabels = A.catalog({
         name: "Named objects",
-        sourceSize: 5,
+        sourceSize: 1,
         color: "#7dffb0",
         shape: "circle",
         displayLabel: true,
         labelColumn: "label",
         labelColor: "#9affc7",
         labelFont: "13px sans-serif",
-        onClick: "showPopup",
       });
       aladin.addCatalog(namedLabels);
       namedLabelRef.current = namedLabels;
@@ -555,15 +562,22 @@ function AladinView(
         const isDark = o.kind === "dark";
         const circ = isDark ? darkCircles : circles;
         circ.add(A.circle(o.ra, o.dec, o.sizeArcmin / 2 / 60));
-        (isDark ? darkLabels : labels).addSources([
-          A.source(o.ra, o.dec, {
-            label: objectLabel(o),
-            popupTitle: objectLabel(o),
-            popupDesc:
-              `${o.kind} · ${o.catalog} · size ${o.sizeArcmin}'<br/>` +
-              `RA ${o.ra.toFixed(4)}°, Dec ${o.dec.toFixed(4)}°`,
-          }),
-        ]);
+        if (isDark) {
+          darkLabels.addSources([
+            A.source(o.ra, o.dec, {
+              label: objectLabel(o),
+              popupTitle: objectLabel(o),
+              popupDesc:
+                `${o.kind} · ${o.catalog} · size ${o.sizeArcmin}'<br/>` +
+                `RA ${o.ra.toFixed(4)}°, Dec ${o.dec.toFixed(4)}°`,
+            }),
+          ]);
+        } else {
+          // Named objects are non-interactive labels: the source carries only the
+          // label text (no popup data), so a click opens nothing — matching the
+          // FOV-box / draft-box decorative label catalogs.
+          labels.addSources([A.source(o.ra, o.dec, { label: objectLabel(o) })]);
+        }
       }
     }
     aladinRef.current?.view?.requestRedraw?.();
