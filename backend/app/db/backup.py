@@ -58,15 +58,16 @@ def backup_signature(db_path: Path) -> str:
     return sig
 
 
-def consistent_copy(src: Path, dest: Path) -> None:
+def consistent_copy(src: Path, dest: Path, *, timeout: float = 5.0) -> None:
     """Transactionally consistent copy of a SQLite DB via the Online Backup API.
 
     The source may be a WAL database NINA holds open; we open it read-write-capable
     (the backup API never modifies the source) so SQLite maps the ``-shm`` index and
     the copy captures all committed WAL frames. A ``mode=ro`` open can silently miss
-    those frames — a backup that is "torn in time".
+    those frames — a backup that is "torn in time". ``timeout`` bounds how long the
+    read waits on a busy/locked source before raising.
     """
-    src_conn = sqlite3.connect(str(src))
+    src_conn = sqlite3.connect(str(src), timeout=timeout)
     dest_conn = sqlite3.connect(dest)
     try:
         with dest_conn:
@@ -74,6 +75,16 @@ def consistent_copy(src: Path, dest: Path) -> None:
     finally:
         src_conn.close()
         dest_conn.close()
+
+
+def work_dir() -> Path:
+    """Local scratch directory for staged write copies (a sibling of ``BACKUP_DIR``).
+
+    Derived from ``BACKUP_DIR`` so it lives on the same writable local storage as the
+    backups (and so tests that redirect ``BACKUP_DIR`` isolate it automatically). Kept
+    out of ``BACKUP_DIR`` itself so backup listings/retention never see work files.
+    """
+    return BACKUP_DIR.parent / "work"
 
 
 def _unique(path: Path) -> Path:

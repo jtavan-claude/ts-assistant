@@ -8,22 +8,32 @@ safety path:
 
 Guarantees: only INSERTs; new rowid-alias Ids never collide; the whole thing is one
 transaction (provenance table + rows commit atomically with the data); on any failure
-the DB is left byte-unchanged. Writes operate in place on the configured Target
-Scheduler database, with a consistent backup taken before every write.
+the DB is left byte-unchanged.
+
+Writes are local-staged: each write copies the configured database to a local working
+file, mutates that, then publishes the whole file back to the source with an optimistic
+compare-and-swap (see :func:`_staged_write`). This makes writes work even when the
+source lives on a network share / file-sync replica (SMB/CIFS/NFS, Syncthing) where
+in-place incremental SQLite writes fail; reads still go straight to the source. A
+consistent backup is taken before every write.
 """
 
 from __future__ import annotations
 
+import os
+import shutil
 import sqlite3
+import tempfile
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterator
 
 from pydantic import BaseModel
 
 from ..config import find_source_db
-from .backup import backup_signature, ensure_backup
+from .backup import backup_signature, consistent_copy, ensure_backup, work_dir
 from .ops import OpLogEntry, find_op, mark_status, record_op, set_target_state
 from .provenance import (
     ProvRow,
@@ -76,6 +86,14 @@ class ProgressError(ExportError):
 
 class EditNotAllowedError(ExportError):
     """Refused to edit a project that isn't a safely-editable Draft (o2c)."""
+
+
+class ConcurrentModificationError(DatabaseBusyError):
+    """The database changed on disk between when we staged a local copy and when we
+    went to publish our result — another writer (e.g. NINA, or a file-sync pulling a
+    newer version) wrote it underneath us. We refuse to overwrite their change; the
+    user just retries. Subclasses DatabaseBusyError so it maps to 409 like other
+    "can't write right now" conditions."""
 
 
 class ExportResult(BaseModel):
@@ -200,6 +218,121 @@ def _busy_or_export_error(e: sqlite3.OperationalError) -> ExportError:
     return ExportError(str(e))
 
 
+# --- local-staged writes ---------------------------------------------------
+#
+# All writes are performed on a LOCAL working copy of the database, which is then
+# published back to the source as a whole file. This is what makes writes work when
+# the configured database lives on a network share / file-sync replica (SMB/CIFS/NFS,
+# Syncthing, …): incremental in-place SQLite writes (locking, a -journal, random page
+# writes) are unreliable there and fail with "attempt to write a readonly database",
+# but reads and whole-file copies are fine. We guard against clobbering a concurrent
+# external writer with an optimistic compare-and-swap on the source's signature — no
+# lock needed, which suits the infrequent, single-user write pattern.
+
+
+class _StagedWrite:
+    """Handle yielded by :func:`_staged_write`: open ``work``, key bookkeeping off
+    ``source``, and read ``new_signature`` after the block (set on publish)."""
+
+    def __init__(self, source: Path, work: Path, backup):
+        self.source = source
+        self.work = work
+        self.backup = backup
+        self.new_signature: str | None = None
+
+
+def _assert_source_readable(source: Path) -> None:
+    """Fail fast (bounded) if a writer holds an exclusive lock on the source.
+
+    The Online Backup API used by :func:`_stage_in` retries on SQLITE_BUSY *forever*, so
+    without this probe an exclusive lock would hang the request. A SHARED read here waits
+    only up to ``CONNECT_TIMEOUT`` (the connection's busy timeout) and then raises, which
+    the caller maps to a clean busy error. In the normal case (source not locked) this is
+    a couple of cheap reads."""
+    probe = sqlite3.connect(str(source), timeout=CONNECT_TIMEOUT)
+    try:
+        probe.execute("SELECT count(*) FROM sqlite_master").fetchone()
+    finally:
+        probe.close()
+
+
+def _stage_in(source: Path) -> Path:
+    """Make a local, self-contained working copy of ``source`` for writing.
+
+    Uses the Online Backup API (consistent even if the source is being read), then
+    forces rollback-journal mode so the single ``work`` file is always self-contained
+    after a commit (no -wal to carry), which keeps publishing a one-file copy correct.
+    """
+    wd = work_dir()
+    wd.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=source.stem + "-work-", suffix=".sqlite", dir=wd)
+    os.close(fd)
+    work = Path(tmp)
+    try:
+        consistent_copy(source, work, timeout=CONNECT_TIMEOUT)
+        conn = sqlite3.connect(str(work))
+        try:
+            conn.execute("PRAGMA journal_mode=DELETE")  # never WAL locally -> file is standalone
+        finally:
+            conn.close()
+    except BaseException:
+        work.unlink(missing_ok=True)  # don't leak the temp copy if staging fails
+        raise
+    return work
+
+
+def _publish(source: Path, work: Path, expected_sig: str) -> str:
+    """Publish the modified ``work`` copy back to ``source`` as a whole file, but only
+    if ``source`` is byte-for-byte the snapshot we staged (compare-and-swap). Returns
+    the new source signature; raises :class:`ConcurrentModificationError` on a race."""
+    if backup_signature(source) != expected_sig:
+        raise ConcurrentModificationError(
+            "the database changed on disk while the edit was in progress (NINA or a file "
+            "sync wrote it). Your change was not applied — reload and try again."
+        )
+    # Whole-file publish: copy to a temp file in the source directory, then atomically
+    # rename over the original (a sequential write + rename, which works over CIFS).
+    fd, tmp = tempfile.mkstemp(prefix=source.name + ".", suffix=".tswrite", dir=source.parent)
+    os.close(fd)
+    tmp_path = Path(tmp)
+    try:
+        shutil.copyfile(work, tmp_path)
+        os.replace(tmp_path, source)
+    except BaseException:
+        tmp_path.unlink(missing_ok=True)
+        raise
+    return backup_signature(source)
+
+
+@contextmanager
+def _staged_write(
+    target_db: str | Path | None, now: datetime
+) -> Iterator[_StagedWrite]:
+    """Resolve + back up the source, stage a local working copy, and (on a clean exit
+    of the block) compare-and-swap publish it back. The caller opens ``ctx.work`` for
+    the actual SQLite mutation and keys bookkeeping off ``ctx.source`` afterward."""
+    source = _resolve_target(target_db)
+    # Snapshot + stage the source locally. Reading it can hit a lock (e.g. a writer
+    # mid-commit); surface that as a clean busy error rather than a raw 500.
+    try:
+        _assert_source_readable(source)  # bounded; avoids the backup API hanging on a lock
+        work = _stage_in(source)
+        expected_sig = backup_signature(source)  # the state our working copy is based on
+    except sqlite3.OperationalError as e:
+        raise _busy_or_export_error(e) from e
+    try:
+        try:
+            backup = ensure_backup(source, now=now)  # restore point before the write
+        except sqlite3.OperationalError as e:
+            raise _busy_or_export_error(e) from e
+        ctx = _StagedWrite(source=source, work=work, backup=backup)
+        yield ctx
+        # Only reached if the block completed without raising (mutation committed).
+        ctx.new_signature = _publish(source, work, expected_sig)
+    finally:
+        work.unlink(missing_ok=True)
+
+
 # --- public API ------------------------------------------------------------
 
 def export_project(
@@ -211,45 +344,43 @@ def export_project(
 ) -> ExportResult:
     now = now or datetime.now(timezone.utc)
     validate = validate or default_validate
-    target = _resolve_target(target_db)
-
-    backup = ensure_backup(target, now=now)  # consistent restore point before the write
     operation_id = "op_" + uuid.uuid4().hex
 
-    conn = sqlite3.connect(target, isolation_level=None, timeout=CONNECT_TIMEOUT)
-    conn.row_factory = sqlite3.Row  # introspect()/validate look up columns by name
-    try:
-        conn.execute("PRAGMA foreign_keys = ON")  # no-op inside a txn, so set first
-        # Verify integrity BEFORE taking the write lock, so a scan never blocks NINA
-        # mid-capture.
-        chk = conn.execute("PRAGMA quick_check").fetchone()[0]
-        if chk != "ok":
-            raise ExportError(f"quick_check failed before write: {chk}")
-        counts_before = _counts(conn)
-        max_before = _max_ids(conn)
+    with _staged_write(target_db, now) as st:
+        conn = sqlite3.connect(str(st.work), isolation_level=None, timeout=CONNECT_TIMEOUT)
+        conn.row_factory = sqlite3.Row  # introspect()/validate look up columns by name
+        try:
+            conn.execute("PRAGMA foreign_keys = ON")  # no-op inside a txn, so set first
+            # Verify integrity BEFORE taking the write lock, so a scan never blocks NINA
+            # mid-capture.
+            chk = conn.execute("PRAGMA quick_check").fetchone()[0]
+            if chk != "ok":
+                raise ExportError(f"quick_check failed before write: {chk}")
+            counts_before = _counts(conn)
+            max_before = _max_ids(conn)
 
-        conn.execute("BEGIN IMMEDIATE")  # take the write lock up front; busy -> fail fast
-        ensure_provenance_table(conn)  # inside txn so a rollback removes it too
-        validate(conn, spec)  # pre-write schema/compat gate (mh3.3); clean error before INSERTs
-        result = write_project(conn, spec)
-        record_rows(conn, operation_id, _collect_prov(conn, result), now.isoformat())
-        _assert_additive(conn, counts_before, max_before, result)
-        fk = conn.execute("PRAGMA foreign_key_check").fetchall()
-        if fk:
-            raise ExportError(f"foreign key violations: {fk[:5]}")
-        conn.commit()
-        project_guid = _guid(conn, "project", result.project_id)
-    except sqlite3.OperationalError as e:
-        conn.rollback()
-        raise _busy_or_export_error(e) from e
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+            conn.execute("BEGIN IMMEDIATE")  # take the write lock up front; busy -> fail fast
+            ensure_provenance_table(conn)  # inside txn so a rollback removes it too
+            validate(conn, spec)  # pre-write schema/compat gate (mh3.3); clean error before INSERTs
+            result = write_project(conn, spec)
+            record_rows(conn, operation_id, _collect_prov(conn, result), now.isoformat())
+            _assert_additive(conn, counts_before, max_before, result)
+            fk = conn.execute("PRAGMA foreign_key_check").fetchall()
+            if fk:
+                raise ExportError(f"foreign key violations: {fk[:5]}")
+            conn.commit()
+            project_guid = _guid(conn, "project", result.project_id)
+        except sqlite3.OperationalError as e:
+            conn.rollback()
+            raise _busy_or_export_error(e) from e
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
-    target_key = str(target.resolve())
-    set_target_state(target_key, last_seen_signature=backup_signature(target))
+    target_key = str(st.source.resolve())
+    set_target_state(target_key, last_seen_signature=st.new_signature)
     counts = {t: len(ids) for t, ids in _inserted_ids(result).items()}
     record_op(
         OpLogEntry(
@@ -257,7 +388,7 @@ def export_project(
             written_at=now.isoformat(),
             kind="export",
             target_db=target_key,
-            backup_path=backup.path,
+            backup_path=st.backup.path,
             status="committed",
             project_guid=project_guid,
             counts=counts,
@@ -266,7 +397,7 @@ def export_project(
     return ExportResult(
         operation_id=operation_id,
         target_db=target_key,
-        backup_path=backup.path,
+        backup_path=st.backup.path,
         project_id=result.project_id,
         project_guid=project_guid,
         target_ids=result.target_ids,
@@ -291,56 +422,54 @@ def create_exposure_template(
     """
     now = now or datetime.now(timezone.utc)
     validate = validate or validate_exposure_template
-    target = _resolve_target(target_db)
-
-    backup = ensure_backup(target, now=now)  # consistent restore point before the write
     operation_id = "op_" + uuid.uuid4().hex
 
-    conn = sqlite3.connect(target, isolation_level=None, timeout=CONNECT_TIMEOUT)
-    conn.row_factory = sqlite3.Row
-    try:
-        conn.execute("PRAGMA foreign_keys = ON")
-        chk = conn.execute("PRAGMA quick_check").fetchone()[0]  # verify before locking
-        if chk != "ok":
-            raise ExportError(f"quick_check failed before write: {chk}")
-        count_before = conn.execute("SELECT COUNT(*) FROM exposuretemplate").fetchone()[0]
-        max_before = conn.execute("SELECT COALESCE(MAX(Id), 0) FROM exposuretemplate").fetchone()[0]
+    with _staged_write(target_db, now) as st:
+        conn = sqlite3.connect(str(st.work), isolation_level=None, timeout=CONNECT_TIMEOUT)
+        conn.row_factory = sqlite3.Row
+        try:
+            conn.execute("PRAGMA foreign_keys = ON")
+            chk = conn.execute("PRAGMA quick_check").fetchone()[0]  # verify before locking
+            if chk != "ok":
+                raise ExportError(f"quick_check failed before write: {chk}")
+            count_before = conn.execute("SELECT COUNT(*) FROM exposuretemplate").fetchone()[0]
+            max_before = conn.execute("SELECT COALESCE(MAX(Id), 0) FROM exposuretemplate").fetchone()[0]
 
-        conn.execute("BEGIN IMMEDIATE")
-        ensure_provenance_table(conn)
-        validate(conn, spec)
-        template_id = write_exposure_template(conn, spec)
-        guid = _guid(conn, "exposuretemplate", template_id)
-        record_rows(
-            conn,
-            operation_id,
-            [ProvRow(table="exposuretemplate", id=template_id, guid=guid)],
-            now.isoformat(),
-        )
-        count_after = conn.execute("SELECT COUNT(*) FROM exposuretemplate").fetchone()[0]
-        if count_after - count_before != 1:
-            raise ExportError(
-                f"additive check failed for exposuretemplate: +{count_after - count_before}, expected +1"
+            conn.execute("BEGIN IMMEDIATE")
+            ensure_provenance_table(conn)
+            validate(conn, spec)
+            template_id = write_exposure_template(conn, spec)
+            guid = _guid(conn, "exposuretemplate", template_id)
+            record_rows(
+                conn,
+                operation_id,
+                [ProvRow(table="exposuretemplate", id=template_id, guid=guid)],
+                now.isoformat(),
             )
-        if template_id <= max_before:
-            raise ExportError(
-                f"non-additive id reuse in exposuretemplate: Id {template_id} <= prior max {max_before}"
-            )
-        fk = conn.execute("PRAGMA foreign_key_check").fetchall()
-        if fk:
-            raise ExportError(f"foreign key violations: {fk[:5]}")
-        conn.commit()
-    except sqlite3.OperationalError as e:
-        conn.rollback()
-        raise _busy_or_export_error(e) from e
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+            count_after = conn.execute("SELECT COUNT(*) FROM exposuretemplate").fetchone()[0]
+            if count_after - count_before != 1:
+                raise ExportError(
+                    f"additive check failed for exposuretemplate: +{count_after - count_before}, expected +1"
+                )
+            if template_id <= max_before:
+                raise ExportError(
+                    f"non-additive id reuse in exposuretemplate: Id {template_id} <= prior max {max_before}"
+                )
+            fk = conn.execute("PRAGMA foreign_key_check").fetchall()
+            if fk:
+                raise ExportError(f"foreign key violations: {fk[:5]}")
+            conn.commit()
+        except sqlite3.OperationalError as e:
+            conn.rollback()
+            raise _busy_or_export_error(e) from e
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
-    target_key = str(target.resolve())
-    set_target_state(target_key, last_seen_signature=backup_signature(target))
+    target_key = str(st.source.resolve())
+    set_target_state(target_key, last_seen_signature=st.new_signature)
     counts = {"exposuretemplate": 1}
     record_op(
         OpLogEntry(
@@ -348,7 +477,7 @@ def create_exposure_template(
             written_at=now.isoformat(),
             kind="create_template",
             target_db=target_key,
-            backup_path=backup.path,
+            backup_path=st.backup.path,
             status="committed",
             project_guid=None,
             counts=counts,
@@ -357,7 +486,7 @@ def create_exposure_template(
     return TemplateResult(
         operation_id=operation_id,
         target_db=target_key,
-        backup_path=backup.path,
+        backup_path=st.backup.path,
         template_id=template_id,
         template_guid=guid,
         counts=counts,
@@ -442,39 +571,37 @@ def update_project(
     """
     now = now or datetime.now(timezone.utc)
     validate = validate or default_validate
-    target = _resolve_target(target_db)
-
-    backup = ensure_backup(target, now=now)  # consistent restore point before the write
     operation_id = "op_" + uuid.uuid4().hex
 
-    conn = sqlite3.connect(target, isolation_level=None, timeout=CONNECT_TIMEOUT)
-    conn.row_factory = sqlite3.Row
-    try:
-        conn.execute("PRAGMA foreign_keys = ON")
-        chk = conn.execute("PRAGMA quick_check").fetchone()[0]  # verify before locking
-        if chk != "ok":
-            raise ExportError(f"quick_check failed before write: {chk}")
+    with _staged_write(target_db, now) as st:
+        conn = sqlite3.connect(str(st.work), isolation_level=None, timeout=CONNECT_TIMEOUT)
+        conn.row_factory = sqlite3.Row
+        try:
+            conn.execute("PRAGMA foreign_keys = ON")
+            chk = conn.execute("PRAGMA quick_check").fetchone()[0]  # verify before locking
+            if chk != "ok":
+                raise ExportError(f"quick_check failed before write: {chk}")
 
-        conn.execute("BEGIN IMMEDIATE")
-        _assert_editable(conn, project_id)
-        validate(conn, spec)  # schema/profile compatibility (reused create-path gate)
-        result = writer_update_project(conn, project_id, spec)
-        fk = conn.execute("PRAGMA foreign_key_check").fetchall()
-        if fk:
-            raise ExportError(f"foreign key violations: {fk[:5]}")
-        conn.commit()
-        project_guid = _guid(conn, "project", result.project_id)
-    except sqlite3.OperationalError as e:
-        conn.rollback()
-        raise _busy_or_export_error(e) from e
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+            conn.execute("BEGIN IMMEDIATE")
+            _assert_editable(conn, project_id)
+            validate(conn, spec)  # schema/profile compatibility (reused create-path gate)
+            result = writer_update_project(conn, project_id, spec)
+            fk = conn.execute("PRAGMA foreign_key_check").fetchall()
+            if fk:
+                raise ExportError(f"foreign key violations: {fk[:5]}")
+            conn.commit()
+            project_guid = _guid(conn, "project", result.project_id)
+        except sqlite3.OperationalError as e:
+            conn.rollback()
+            raise _busy_or_export_error(e) from e
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
-    target_key = str(target.resolve())
-    set_target_state(target_key, last_seen_signature=backup_signature(target))
+    target_key = str(st.source.resolve())
+    set_target_state(target_key, last_seen_signature=st.new_signature)
     counts = {"target": len(result.target_ids), "exposureplan": len(result.plan_ids)}
     record_op(
         OpLogEntry(
@@ -482,7 +609,7 @@ def update_project(
             written_at=now.isoformat(),
             kind="update",
             target_db=target_key,
-            backup_path=backup.path,
+            backup_path=st.backup.path,
             status="committed",
             project_guid=project_guid,
             counts=counts,
@@ -491,7 +618,7 @@ def update_project(
     return ExportResult(
         operation_id=operation_id,
         target_db=target_key,
-        backup_path=backup.path,
+        backup_path=st.backup.path,
         project_id=result.project_id,
         project_guid=project_guid,
         target_ids=result.target_ids,
@@ -513,44 +640,42 @@ def delete_project(
     progress, no custom cadence/override). The pre-delete backup is the recovery path.
     """
     now = now or datetime.now(timezone.utc)
-    target = _resolve_target(target_db)
-
-    backup = ensure_backup(target, now=now)  # consistent restore point before the delete
     operation_id = "op_" + uuid.uuid4().hex
 
-    conn = sqlite3.connect(target, isolation_level=None, timeout=CONNECT_TIMEOUT)
-    conn.row_factory = sqlite3.Row
-    try:
-        conn.execute("PRAGMA foreign_keys = ON")
-        chk = conn.execute("PRAGMA quick_check").fetchone()[0]  # verify before locking
-        if chk != "ok":
-            raise ExportError(f"quick_check failed before write: {chk}")
+    with _staged_write(target_db, now) as st:
+        conn = sqlite3.connect(str(st.work), isolation_level=None, timeout=CONNECT_TIMEOUT)
+        conn.row_factory = sqlite3.Row
+        try:
+            conn.execute("PRAGMA foreign_keys = ON")
+            chk = conn.execute("PRAGMA quick_check").fetchone()[0]  # verify before locking
+            if chk != "ok":
+                raise ExportError(f"quick_check failed before write: {chk}")
 
-        conn.execute("BEGIN IMMEDIATE")
-        _assert_editable(conn, project_id)
-        deleted = writer_delete_project(conn, project_id)
-        fk = conn.execute("PRAGMA foreign_key_check").fetchall()
-        if fk:
-            raise ExportError(f"foreign key violations: {fk[:5]}")
-        conn.commit()
-    except sqlite3.OperationalError as e:
-        conn.rollback()
-        raise _busy_or_export_error(e) from e
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+            conn.execute("BEGIN IMMEDIATE")
+            _assert_editable(conn, project_id)
+            deleted = writer_delete_project(conn, project_id)
+            fk = conn.execute("PRAGMA foreign_key_check").fetchall()
+            if fk:
+                raise ExportError(f"foreign key violations: {fk[:5]}")
+            conn.commit()
+        except sqlite3.OperationalError as e:
+            conn.rollback()
+            raise _busy_or_export_error(e) from e
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
-    target_key = str(target.resolve())
-    set_target_state(target_key, last_seen_signature=backup_signature(target))
+    target_key = str(st.source.resolve())
+    set_target_state(target_key, last_seen_signature=st.new_signature)
     record_op(
         OpLogEntry(
             operation_id=operation_id,
             written_at=now.isoformat(),
             kind="delete",
             target_db=target_key,
-            backup_path=backup.path,
+            backup_path=st.backup.path,
             status="committed",
             project_guid=None,
             counts=deleted,
@@ -559,7 +684,7 @@ def delete_project(
     return DeleteResult(
         project_id=project_id,
         target_db=target_key,
-        backup_path=backup.path,
+        backup_path=st.backup.path,
         deleted=deleted,
     )
 
@@ -574,44 +699,45 @@ def undo_operation(
     op = find_op(operation_id)
     if op is None and target_db is None:
         raise ExportError(f"unknown operation {operation_id}")
-    target = Path(target_db) if target_db else Path(op.target_db)  # type: ignore[union-attr]
+    resolved = target_db if target_db else op.target_db  # type: ignore[union-attr]
 
-    # Undo is non-additive (it deletes rows), so it gets the same consistent pre-write
-    # backup as any other write.
-    backup = ensure_backup(target, now=now)
-    conn = sqlite3.connect(target, isolation_level=None, timeout=CONNECT_TIMEOUT)
-    conn.row_factory = sqlite3.Row  # introspect()/validate look up columns by name
-    try:
-        conn.execute("PRAGMA foreign_keys = ON")
-        conn.execute("BEGIN IMMEDIATE")
-        rows = rows_for_operation(conn, operation_id)
-        if not rows:
-            raise ExportError(f"no provenance rows for {operation_id} in {target}")
-        for r in rows:
-            if r.table == "project" and has_progress(conn, r.id):
-                raise ProgressError(
-                    f"project {r.id} has captured subframes; refusing to undo started work"
-                )
-        deleted = _delete_provenanced_rows(conn, rows)
-        delete_operation_rows(conn, operation_id)
-        fk = conn.execute("PRAGMA foreign_key_check").fetchall()
-        if fk:
-            raise ExportError(f"foreign key violations after undo: {fk[:5]}")
-        conn.commit()
-    except sqlite3.OperationalError as e:
-        conn.rollback()
-        raise _busy_or_export_error(e) from e
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+    # Undo is non-additive (it deletes rows), so it goes through the same staged write +
+    # consistent pre-write backup as any other write.
+    with _staged_write(resolved, now) as st:
+        conn = sqlite3.connect(str(st.work), isolation_level=None, timeout=CONNECT_TIMEOUT)
+        conn.row_factory = sqlite3.Row  # introspect()/validate look up columns by name
+        try:
+            conn.execute("PRAGMA foreign_keys = ON")
+            conn.execute("BEGIN IMMEDIATE")
+            rows = rows_for_operation(conn, operation_id)
+            if not rows:
+                raise ExportError(f"no provenance rows for {operation_id} in {st.source}")
+            for r in rows:
+                if r.table == "project" and has_progress(conn, r.id):
+                    raise ProgressError(
+                        f"project {r.id} has captured subframes; refusing to undo started work"
+                    )
+            deleted = _delete_provenanced_rows(conn, rows)
+            delete_operation_rows(conn, operation_id)
+            fk = conn.execute("PRAGMA foreign_key_check").fetchall()
+            if fk:
+                raise ExportError(f"foreign key violations after undo: {fk[:5]}")
+            conn.commit()
+        except sqlite3.OperationalError as e:
+            conn.rollback()
+            raise _busy_or_export_error(e) from e
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
-    set_target_state(str(target.resolve()), last_seen_signature=backup_signature(target))
+    target_key = str(st.source.resolve())
+    set_target_state(target_key, last_seen_signature=st.new_signature)
     mark_status(operation_id, "undone")
     return UndoResult(
         operation_id=operation_id,
-        target_db=str(target.resolve()),
-        backup_path=backup.path,
+        target_db=target_key,
+        backup_path=st.backup.path,
         deleted=deleted,
     )
