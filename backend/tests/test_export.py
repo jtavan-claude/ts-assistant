@@ -546,13 +546,17 @@ def test_update_reconciles_added_and_removed_targets(tmp_path):
         ],
     )
     update_project(pid, spec, target_db=db, now=T0)
+    # Open a fresh connection after each write: staged writes publish by replacing the
+    # file, so a connection opened earlier would keep reading the old (pre-write) inode.
     conn = sqlite3.connect(db)
     names = {r[0] for r in conn.execute("SELECT name FROM target WHERE projectid = ?", (pid,))}
+    conn.close()
     assert names == {"T1", "T2 new"}
 
     # Now remove the new one again.
     spec.targets = [spec.targets[0]]
     update_project(pid, spec, target_db=db, now=T0)
+    conn = sqlite3.connect(db)
     names = {r[0] for r in conn.execute("SELECT name FROM target WHERE projectid = ?", (pid,))}
     assert names == {"T1"}
     assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
@@ -885,7 +889,9 @@ def test_incompatible_schema_rejected_and_rolled_back(tmp_path):
 def test_busy_db_fails_fast(tmp_path):
     db = _baseline(tmp_path / "t.sqlite")
     holder = sqlite3.connect(db, isolation_level=None)
-    holder.execute("BEGIN IMMEDIATE")  # hold the write lock
+    # EXCLUSIVE blocks even reads, so staging the source copy fails fast -> busy.
+    # (A mere RESERVED lock no longer blocks us: writes go to a local copy.)
+    holder.execute("BEGIN EXCLUSIVE")
     try:
         with pytest.raises(DatabaseBusyError):
             export_project(_new_project(), target_db=db, now=T0)

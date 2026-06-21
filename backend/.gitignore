@@ -1,0 +1,4 @@
+.env
+.claude/settings.local.json
+cursor.mcp.json
+gemini.mcp.json
