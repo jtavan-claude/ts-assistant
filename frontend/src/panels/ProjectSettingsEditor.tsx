@@ -1,4 +1,5 @@
 import type { ProjectSettings } from "../api";
+import { FLATS_HANDLING_OPTIONS } from "../api";
 
 interface Props {
   settings: ProjectSettings;
@@ -18,8 +19,7 @@ type NumKey =
   | "horizon_offset"
   | "meridian_window"
   | "filter_switch_frequency"
-  | "dither_every"
-  | "flats_handling";
+  | "dither_every";
 
 const NUM_FIELDS: { key: NumKey; label: string; title?: string }[] = [
   { key: "minimum_time", label: "Minimum time (min)" },
@@ -29,7 +29,6 @@ const NUM_FIELDS: { key: NumKey; label: string; title?: string }[] = [
   { key: "meridian_window", label: "Meridian window (min)" },
   { key: "filter_switch_frequency", label: "Filter switch frequency" },
   { key: "dither_every", label: "Dither every" },
-  { key: "flats_handling", label: "Flats handling", title: "0 = off" },
 ];
 
 type BoolKey = "use_custom_horizon" | "enable_grader" | "smart_exposure_order";
@@ -90,6 +89,26 @@ export default function ProjectSettingsEditor({
             />
           </label>
         ))}
+
+        <label className="rw-row">
+          <span className="rw-name">Flats handling</span>
+          <select
+            value={settings.flats_handling}
+            onChange={(e) => set("flats_handling", Number(e.target.value))}
+          >
+            {FLATS_HANDLING_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+            {/* Unknown TS value: keep it selectable/visible rather than coercing it. */}
+            {!FLATS_HANDLING_OPTIONS.some((o) => o.value === settings.flats_handling) && (
+              <option value={settings.flats_handling}>
+                value ({settings.flats_handling})
+              </option>
+            )}
+          </select>
+        </label>
 
         {BOOL_FIELDS.map((f) => (
           <div key={f.key}>

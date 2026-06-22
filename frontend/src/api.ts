@@ -74,6 +74,30 @@ export interface ProjectSettings {
   smart_exposure_order: boolean;
 }
 
+/**
+ * Target Scheduler's fixed "Flats handling" choices, in NINA's order. The bare
+ * numbers are periodic day-counts (take flats every N days), stored as their
+ * literal integers. Off/Target Completion/Use With Immediate are special modes
+ * stored as reserved sentinel integers:
+ *   Off = 0 (DB default), Target Completion = 100, Use With Immediate = 200
+ *   (NINA FlatsHandling constants FLATS_HANDLING_TARGET_COMPLETION /
+ *   FLATS_HANDLING_IMMEDIATE).
+ * Value stays an integer end-to-end; only the UI control changes. An unknown
+ * loaded value must fall back to a raw "value (N)" option (handled in the UI).
+ */
+export const FLATS_HANDLING_OPTIONS: { value: number; label: string }[] = [
+  { value: 0, label: "Off" },
+  { value: 1, label: "Every 1 day" },
+  { value: 2, label: "Every 2 days" },
+  { value: 3, label: "Every 3 days" },
+  { value: 5, label: "Every 5 days" },
+  { value: 7, label: "Every 7 days" },
+  { value: 10, label: "Every 10 days" },
+  { value: 14, label: "Every 14 days" },
+  { value: 100, label: "Target Completion" },
+  { value: 200, label: "Use With Immediate" },
+];
+
 /** NINA's project defaults (mirrors writer.ProjectSpec defaults). */
 export const PROJECT_SETTING_DEFAULTS: ProjectSettings = {
   priority: 1,
