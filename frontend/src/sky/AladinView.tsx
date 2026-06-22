@@ -12,9 +12,16 @@ import type { ExposurePlan, Survey, Target } from "../api";
 import { fovCorners, fovTopTriangle, type MosaicPanel } from "./fov";
 import { NAMED_OBJECTS, objectLabel } from "./skyObjects";
 
-// A named object is drawn only when its angular size is at least this fraction
-// of the current field-of-view width — the zoom-aware declutter for the overlay.
-const MIN_FOV_FRACTION = 0.02;
+// Adaptive named-object declutter (bead h9m). Instead of a fixed sky-wide size
+// threshold, we scope to what's actually on-screen and budget the count:
+//   - MAX_NAMED_IN_VIEW: cap on labels shown at once. If the field has fewer
+//     in-view objects than this we show them ALL (so a sparse off-disk galaxy
+//     field reveals its small members); if more, we show only the largest N
+//     (so the Milky Way / a rich cluster stays tasteful, not a wall of text).
+//   - NAMED_MIN_SCREEN_PX: absolute floor so truly sub-pixel objects are never
+//     drawn. The budget does the decluttering; this floor just suppresses noise.
+const MAX_NAMED_IN_VIEW = 30;
+const NAMED_MIN_SCREEN_PX = 3;
 
 // A target-box name label is drawn only when the box is at least this fraction of
 // the current field-of-view wide. The same zoom-aware declutter the named-object
@@ -343,18 +350,23 @@ function AladinView(
         if (id != null) onClickRef.current?.(Number(id));
       });
 
-      // Re-cull the named-object overlay when the zoom changes, so only objects
-      // large enough on-screen are drawn (debounced past the zoom animation). The
-      // target-frame labels track the view via the continuous render loop below, so
-      // they need no per-event repaint here.
-      aladin.on("zoomChanged", () => {
+      // Re-cull the named-object overlay when the view changes, so only the
+      // largest in-view objects (up to the budget) are drawn. With the declutter
+      // now scoped to the viewport, the visible set changes on PAN as well as
+      // zoom, so we re-cull on both events (debounced past the animation, sharing
+      // one timer). Aladin keeps a single handler per event name, so each on(...)
+      // below registers exactly one. The target-frame labels track the view via
+      // the continuous render loop below, so they need no per-event repaint here.
+      const recullNamed = () => {
         if (!showNamedRef.current) return;
         window.clearTimeout(namedZoomTimerRef.current);
         namedZoomTimerRef.current = window.setTimeout(
           () => syncNamed(showNamedRef.current),
           120,
         );
-      });
+      };
+      aladin.on("zoomChanged", recullNamed);
+      aladin.on("positionChanged", recullNamed);
 
       syncCatalog(targetsRef.current);
       syncFov(targetsRef.current, fovRef.current);
@@ -661,11 +673,19 @@ function AladinView(
   }
 
   // Named-object overlay: a circle sized to each object's angular extent plus a
-  // label catalog. Zoom-aware culling keeps the view readable across ~420
-  // objects — an object is only drawn when its angular size is at least
-  // MIN_FOV_FRACTION of the current field of view, so a wide field shows only
-  // the giants (M31, the Veil, big Sharpless complexes) and zooming in reveals
-  // progressively smaller ones. Both layers are cleared when `show` is off.
+  // label catalog. Adaptive viewport-scoped declutter (bead h9m) keeps the view
+  // readable across ~420 objects:
+  //   1. Scope to the viewport — consider only objects that currently project to
+  //      a finite pixel inside the host bounds (off-screen / behind the SIN
+  //      projection => world2pix null => excluded).
+  //   2. Floor — drop objects whose on-screen extent is below NAMED_MIN_SCREEN_PX
+  //      so truly sub-pixel noise is never drawn.
+  //   3. Rank + budget — sort the survivors by angular size descending and show
+  //      up to MAX_NAMED_IN_VIEW. Fewer in view than the budget => show them all
+  //      (a sparse off-disk field reveals its small galaxies at a reasonable
+  //      zoom); more => show only the largest N (a dense region stays uncluttered).
+  // The same selection drives BOTH layers (green named, dusty-orange dark nebulae).
+  // Both layers are cleared when `show` is off.
   function syncNamed(show: boolean | undefined) {
     const circles = namedCircleRef.current;
     const labels = namedLabelRef.current;
@@ -677,15 +697,33 @@ function AladinView(
     darkCircles.removeAll();
     darkLabels.removeAll();
     if (show) {
+      const host = divRef.current;
       const f = aladinRef.current?.getFov?.();
       const fovDeg = Array.isArray(f) ? f[0] : f;
-      const minSizeDeg = (fovDeg && fovDeg > 0 ? fovDeg : 60) * MIN_FOV_FRACTION;
-      const visible = NAMED_OBJECTS.filter(
-        (o) => o.sizeArcmin / 60 >= minSizeDeg,
-      );
+      const safeFovDeg = fovDeg && fovDeg > 0 ? fovDeg : 60;
+      const hostW = host?.clientWidth ?? 0;
+      const hostH = host?.clientHeight ?? 0;
+      // Pixels per degree across the host width — converts an object's angular
+      // size to its on-screen extent for the floor test.
+      const pxPerDeg = hostW > 0 ? hostW / safeFovDeg : 0;
+
+      // Step 1+2: keep only on-screen objects whose on-screen extent clears the
+      // floor. worldToHostXY returns null when the point is off-screen or behind
+      // the projection; we additionally require it to land within the host box.
+      const inView = NAMED_OBJECTS.filter((o) => {
+        const screenPx = (o.sizeArcmin / 60) * pxPerDeg;
+        if (screenPx < NAMED_MIN_SCREEN_PX) return false;
+        const p = worldToHostXY(o.ra, o.dec);
+        return !!p && p.x >= 0 && p.x <= hostW && p.y >= 0 && p.y <= hostH;
+      });
+
+      // Step 3: largest first, then take the budget (all of them when sparse).
+      inView.sort((a, b) => b.sizeArcmin - a.sizeArcmin);
+      const shown = inView.slice(0, MAX_NAMED_IN_VIEW);
+
       // Dark nebulae render on their own dusty-orange layer; everything else on
       // the green layer.
-      for (const o of visible) {
+      for (const o of shown) {
         const isDark = o.kind === "dark";
         const circ = isDark ? darkCircles : circles;
         circ.add(A.circle(o.ra, o.dec, o.sizeArcmin / 2 / 60));
@@ -817,6 +855,7 @@ function AladinView(
   // Named-object overlay toggled.
   useEffect(() => {
     if (aladinRef.current) syncNamed(showNamedObjects);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showNamedObjects]);
 
   // Imperative focus (click-to-center).
