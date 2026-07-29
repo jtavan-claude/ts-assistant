@@ -34,6 +34,18 @@ const NAMED_RECULL_THROTTLE_MS = 100;
 // FOV, where stacked names would be unreadable) but appear as you zoom in.
 const LABEL_MIN_FOV_FRACTION = 0.04;
 
+// Experimental online-only "live catalog" layer (bead kx0). A CDS catalog HiPS
+// streamed by Aladin Lite for the current view, behind a UI toggle, so it can be
+// A/B'd against the bundled offline named-object catalog. OFF by default.
+//   Primary: SIMBAD (Aladin's built-in SIMBAD HiPS). If it ever fails to load in
+//   this Aladin Lite version, swap for a well-known CDS catalog HiPS such as Gaia
+//   DR3 ("https://axel.cds.unistra.fr/HiPSCatService/I/355/gaiadr3") or 2MASS.
+// Kept in a clearly-named const so it's trivial to swap.
+const LIVE_CATALOG_HIPS_URL = "https://axel.cds.unistra.fr/HiPSCatService/SIMBAD";
+// A distinct magenta so streamed markers read apart from the bundled green/dark
+// named-object layers and the cyan/amber frame boxes. sourceSize stays >= 2 (ex9).
+const LIVE_CATALOG_COLOR = "#ff5fd2";
+
 // Frame-matched label colors: cyan for the per-target FOV boxes, amber for the
 // project-draft boxes (mirroring the overlay line colors).
 const FOV_LABEL_COLOR = "#00e5ff";
@@ -123,6 +135,8 @@ interface Props {
   draft: TargetRender[] | null;
   /** Draw the bundled named-object overlay (extent circles + labels). */
   showNamedObjects?: boolean;
+  /** Experimental: stream a CDS catalog HiPS for the current view (online-only). */
+  showLiveCatalog?: boolean;
   /** Non-null shows a capture layer: 'move' = click/drag a center, 'coverage' = drag an area. */
   placeMode?: PlaceMode;
   onPlaceCenter?: (raDeg: number, decDeg: number) => void;
@@ -147,6 +161,7 @@ function AladinView(
     fov,
     draft,
     showNamedObjects,
+    showLiveCatalog,
     placeMode,
     onPlaceCenter,
     onCoverageDrag,
@@ -170,6 +185,9 @@ function AladinView(
   const namedLabelRef = useRef<any>(null);
   const darkCircleRef = useRef<any>(null);
   const darkLabelRef = useRef<any>(null);
+  // Experimental streaming catalog-HiPS layer (bead kx0), created once and shown/
+  // hidden by the showLiveCatalog toggle.
+  const liveCatRef = useRef<any>(null);
   const namedZoomTimerRef = useRef<number>(0);
   // Timestamp of the last named-object re-cull, for the pan/zoom throttle (xmb).
   const namedRecullAtRef = useRef<number>(0);
@@ -189,6 +207,8 @@ function AladinView(
   draftRef.current = draft;
   const showNamedRef = useRef(showNamedObjects);
   showNamedRef.current = showNamedObjects;
+  const showLiveCatRef = useRef(showLiveCatalog);
+  showLiveCatRef.current = showLiveCatalog;
   const onPlaceRef = useRef(onPlaceCenter);
   onPlaceRef.current = onPlaceCenter;
   const onCoverageRef = useRef(onCoverageDrag);
@@ -324,6 +344,30 @@ function AladinView(
       aladin.addCatalog(darkLabels);
       darkLabelRef.current = darkLabels;
 
+      // Experimental streaming catalog-HiPS layer (bead kx0): OFF by default, and
+      // online-only (offline Aladin simply fetches no tiles, so the layer stays
+      // empty — no thrown errors). Created once here and shown/hidden by the
+      // showLiveCatalog toggle via syncLiveCatalog(). Distinct magenta so it reads
+      // apart from the bundled green/dark layers; onClick 'showPopup' surfaces the
+      // streamed object's catalog data. sourceSize 8 is well above the ex9 floor.
+      // A.catalogHiPS(url, options) is Aladin Lite v3's progressive catalog loader.
+      try {
+        const liveCat = A.catalogHiPS(LIVE_CATALOG_HIPS_URL, {
+          name: "Live catalog",
+          color: LIVE_CATALOG_COLOR,
+          sourceSize: 8,
+          shape: "circle",
+          onClick: "showPopup",
+          hoverColor: "#ffffff",
+        });
+        aladin.addCatalog(liveCat);
+        liveCatRef.current = liveCat;
+      } catch {
+        // Never let an experimental layer's construction wedge init — if this
+        // Aladin build rejects the URL/options, the rest of the view still works.
+        liveCatRef.current = null;
+      }
+
       // Aladin fires objectClicked(source) on a marker and objectClicked(null)
       // on empty sky. Recenter on a marker; close the popup on empty sky (so the
       // user can dismiss it by clicking anywhere, not just the small X).
@@ -392,6 +436,7 @@ function AladinView(
       syncFov(targetsRef.current, fovRef.current);
       syncDraft(draftRef.current);
       syncNamed(showNamedRef.current);
+      syncLiveCatalog(showLiveCatRef.current);
     };
 
     // Initialize only once the container has a concrete, non-zero size.
@@ -768,6 +813,21 @@ function AladinView(
     aladinRef.current?.view?.requestRedraw?.();
   }
 
+  // Experimental streaming catalog-HiPS layer (bead kx0). The layer is created
+  // once in the init effect; here we just flip its visibility so Aladin streams
+  // (or stops streaming) tiles for the current view. Mirrors how syncNamed drives
+  // the bundled overlay. Toggling on while online streams objects that follow
+  // pan/zoom; toggling off hides them. Offline the layer stays empty (no tiles),
+  // which is acceptable for this A/B testing feature.
+  function syncLiveCatalog(show: boolean | undefined) {
+    const cat = liveCatRef.current;
+    if (!cat) return;
+    // Aladin catalog handles expose show()/hide(); guard in case a build differs.
+    if (show) cat.show?.();
+    else cat.hide?.();
+    aladinRef.current?.view?.requestRedraw?.();
+  }
+
   // Host-relative pixel of a pointer event, or null if the host is gone.
   function hostXY(e: React.PointerEvent): { x: number; y: number } | null {
     const host = divRef.current;
@@ -877,6 +937,11 @@ function AladinView(
     if (aladinRef.current) syncNamed(showNamedObjects);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showNamedObjects]);
+
+  // Experimental live catalog-HiPS layer toggled (bead kx0).
+  useEffect(() => {
+    if (aladinRef.current) syncLiveCatalog(showLiveCatalog);
+  }, [showLiveCatalog]);
 
   // Imperative focus (click-to-center).
   useEffect(() => {
