@@ -45,6 +45,35 @@ const LIVE_CATALOG_HIPS_URL = "https://axel.cds.unistra.fr/HiPSCatService/SIMBAD
 // A distinct magenta so streamed markers read apart from the bundled green/dark
 // named-object layers and the cyan/amber frame boxes. sourceSize stays >= 2 (ex9).
 const LIVE_CATALOG_COLOR = "#ff5fd2";
+// SIMBAD streams every object type — overwhelmingly stars/point sources — which buries
+// the sky in tiny circles. Rather than blacklist the endless star vocabulary (Star,
+// HighPM*, EclBin, WhiteDwarf, RRLyrae, YSO, *_Candidate, …), we WHITELIST the extended
+// deep-sky types so only galaxies, clusters and nebulae render. main_type values verified
+// against live SIMBAD HiPS tiles. Filtering is display-only (Aladin still fetches the
+// tiles). Edit this set to taste — anything not listed (incl. every star/point/transient
+// type) is hidden.
+const LIVE_CATALOG_SHOW_TYPES = new Set<string>([
+  // Galaxies (galaxy-scale; deliberately NOT the point-like QSO/BLLac/Blazar)
+  "Galaxy", "GtowardsGroup", "GtowardsCl", "GinPair", "GinGroup", "GinCl", "PairG",
+  "GroupG", "GroupofG", "IG", "InteractingG", "Compact_Gr_G", "ClG", "protoClG",
+  "SuperClG", "BClG", "BrightestCG", "PartofG",
+  "Seyfert", "Seyfert1", "Seyfert2", "LINER", "AGN", "RadioG", "EmissionG",
+  "StarburstG", "HII_G", "BlueCompactG", "LowSurfBrghtG", "LensedG",
+  "GravLensSystem", "GravLens",
+  // Star clusters / associations
+  "OpenCluster", "GlobCluster", "Cluster", "StarCluster", "Association", "Cl*", "Assoc*",
+  // Nebulae / ISM (extended)
+  "PlanetaryNeb", "HIIReg", "HII", "EmissionNeb", "ReflectionNeb", "DarkNeb", "Nebula",
+  "GalNeb", "SNRemnant", "SNR", "Bubble", "MolCld", "Cloud", "Globule", "GlobCld",
+  "Cometary", "ComGlob", "HVCloud", "ISM",
+]);
+/** Keep only deep-sky SIMBAD objects for the live layer (galaxies/clusters/nebulae) —
+ *  everything else, including all star and *_Candidate/transient types, is hidden.
+ *  Passed as the catalogHiPS `filter` option, which gates per-source drawing (show/hide). */
+function liveCatalogKeep(source: any): boolean {
+  const t: string | undefined = source?.data?.main_type;
+  return !!t && LIVE_CATALOG_SHOW_TYPES.has(t);
+}
 
 // Frame-matched label colors: cyan for the per-target FOV boxes, amber for the
 // project-draft boxes (mirroring the overlay line colors).
@@ -359,6 +388,8 @@ function AladinView(
           shape: "circle",
           onClick: "showPopup",
           hoverColor: "#ffffff",
+          // Deep-sky only — hide stars/point-source noise (see liveCatalogKeep).
+          filter: liveCatalogKeep,
         });
         aladin.addCatalog(liveCat);
         liveCatRef.current = liveCat;
