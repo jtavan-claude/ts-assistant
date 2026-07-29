@@ -104,6 +104,11 @@
 .named-toggle input {
   accent-color: #7dffb0;
 }
+/* Experimental streaming catalog-HiPS toggle (bead kx0): magenta accent matching
+   the LIVE_CATALOG_COLOR marker layer so the control reads with its layer. */
+.live-cat-toggle input {
+  accent-color: #ff5fd2;
+}
 .status {
   margin-left: auto;
   color: var(--text-dim);

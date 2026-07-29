@@ -78,6 +78,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [showFov, setShowFov] = useState(true);
   const [showNamed, setShowNamed] = useState(false);
+  // Experimental online-only streaming catalog-HiPS layer (bead kx0), OFF by default.
+  const [showLiveCatalog, setShowLiveCatalog] = useState(false);
   const [fovSize, setFovSize] = useState<FovBox | null>(null);
   const [projectDraft, setProjectDraft] = useState<ProjectDraft | null>(null);
   // Non-null while editing an existing project (o2c): its DB id, so Save does an
@@ -832,6 +834,17 @@ export default function App() {
           />
           Named objects
         </label>
+        <label
+          className="fov-toggle live-cat-toggle"
+          title="Experimental: stream a CDS SIMBAD catalog HiPS for the current view (online only)"
+        >
+          <input
+            type="checkbox"
+            checked={showLiveCatalog}
+            onChange={(e) => setShowLiveCatalog(e.target.checked)}
+          />
+          Live catalog (online)
+        </label>
         <div className="status">
           {health?.db_present ? (
             <span>
@@ -927,6 +940,7 @@ export default function App() {
             fov={fovBox}
             draft={draftRender}
             showNamedObjects={showNamed}
+            showLiveCatalog={showLiveCatalog}
             placeMode={placeMode}
             onPlaceCenter={(ra, dec) =>
               patchTarget({ centerRa: ra, centerDec: dec })
