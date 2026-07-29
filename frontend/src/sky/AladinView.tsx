@@ -45,6 +45,30 @@ const LIVE_CATALOG_HIPS_URL = "https://axel.cds.unistra.fr/HiPSCatService/SIMBAD
 // A distinct magenta so streamed markers read apart from the bundled green/dark
 // named-object layers and the cyan/amber frame boxes. sourceSize stays >= 2 (ex9).
 const LIVE_CATALOG_COLOR = "#ff5fd2";
+// SIMBAD streams every object type — overwhelmingly stars/point sources — which buries
+// the sky in tiny circles. To make the live layer a useful DEEP-SKY overlay we keep only
+// extended-ish objects: drop every stellar subtype (SIMBAD main_type for stars ends in
+// "*" — HighPM*, SB*, **, RGB*, C*, Be*, PulsV*, EmLine*, …) plus the non-"*" point-like /
+// transient / survey noise below (verified against live SIMBAD HiPS main_type values).
+// Everything else — Galaxy, RadioG, EmissionG, Seyfert1/2, LINER, AGN, ClG, Gin*,
+// GtowardsGroup/Cl, OpenCluster, GlobCluster, PlanetaryNeb, HII, nebulae — is kept.
+// Filtering is display-only (Aladin still fetches the tiles). Edit this set to taste.
+const LIVE_CATALOG_HIDE_TYPES = new Set<string>([
+  "Star", "QSO", "BLLac", "Blazar", "AGN_Candidate", "QSO_Candidate", "Blazar_Candidate",
+  "gammaBurst", "GravWaveEvent", "Planet", "Planet_Candidate", "Nova", "Supernova",
+  "Transient", "Maser", "denseCore", "HH", "Outflow", "X", "ULX", "Radio", "Radio(sub-mm)",
+  "gamma", "IR", "IR<10um", "IR>30um", "UV", "Unknown", "Inexistent", "Blend", "PartofG",
+  "Region", "multiple_object",
+]);
+/** Keep only deep-sky-ish SIMBAD objects for the live layer: hide stellar subtypes
+ *  (main_type ending in "*") and the point-like/transient/survey noise above. Passed
+ *  as the catalogHiPS `filter` option, which gates per-source drawing (show/hide). */
+function liveCatalogKeep(source: any): boolean {
+  const t: string | undefined = source?.data?.main_type;
+  if (!t) return false;
+  if (t.endsWith("*")) return false;
+  return !LIVE_CATALOG_HIDE_TYPES.has(t);
+}
 
 // Frame-matched label colors: cyan for the per-target FOV boxes, amber for the
 // project-draft boxes (mirroring the overlay line colors).
@@ -359,6 +383,8 @@ function AladinView(
           shape: "circle",
           onClick: "showPopup",
           hoverColor: "#ffffff",
+          // Deep-sky only — hide stars/point-source noise (see liveCatalogKeep).
+          filter: liveCatalogKeep,
         });
         aladin.addCatalog(liveCat);
         liveCatRef.current = liveCat;
