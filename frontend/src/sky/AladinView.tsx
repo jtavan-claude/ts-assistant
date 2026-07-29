@@ -456,7 +456,14 @@ function AladinView(
         }
       };
       aladin.on("zoomChanged", recullNamed);
-      aladin.on("positionChanged", recullNamed);
+      aladin.on("positionChanged", (e: any) => {
+        recullNamed();
+        // Aladin doesn't re-anchor an open popup as the view pans, so it ends up
+        // pointing at the wrong place. Dismiss it on a USER pan (e.dragging) — but
+        // NOT on a programmatic recenter (click-to-center fires positionChanged with
+        // dragging=false), which would otherwise close a target's popup instantly.
+        if (e?.dragging) closePopup();
+      });
 
       syncCatalog(targetsRef.current);
       syncFov(targetsRef.current, fovRef.current);
