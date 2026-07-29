@@ -46,28 +46,34 @@ const LIVE_CATALOG_HIPS_URL = "https://axel.cds.unistra.fr/HiPSCatService/SIMBAD
 // named-object layers and the cyan/amber frame boxes. sourceSize stays >= 2 (ex9).
 const LIVE_CATALOG_COLOR = "#ff5fd2";
 // SIMBAD streams every object type — overwhelmingly stars/point sources — which buries
-// the sky in tiny circles. To make the live layer a useful DEEP-SKY overlay we keep only
-// extended-ish objects: drop every stellar subtype (SIMBAD main_type for stars ends in
-// "*" — HighPM*, SB*, **, RGB*, C*, Be*, PulsV*, EmLine*, …) plus the non-"*" point-like /
-// transient / survey noise below (verified against live SIMBAD HiPS main_type values).
-// Everything else — Galaxy, RadioG, EmissionG, Seyfert1/2, LINER, AGN, ClG, Gin*,
-// GtowardsGroup/Cl, OpenCluster, GlobCluster, PlanetaryNeb, HII, nebulae — is kept.
-// Filtering is display-only (Aladin still fetches the tiles). Edit this set to taste.
-const LIVE_CATALOG_HIDE_TYPES = new Set<string>([
-  "Star", "QSO", "BLLac", "Blazar", "AGN_Candidate", "QSO_Candidate", "Blazar_Candidate",
-  "gammaBurst", "GravWaveEvent", "Planet", "Planet_Candidate", "Nova", "Supernova",
-  "Transient", "Maser", "denseCore", "HH", "Outflow", "X", "ULX", "Radio", "Radio(sub-mm)",
-  "gamma", "IR", "IR<10um", "IR>30um", "UV", "Unknown", "Inexistent", "Blend", "PartofG",
-  "Region", "multiple_object",
+// the sky in tiny circles. Blacklisting the star vocabulary is a losing game: many
+// stellar types don't end in "*" (EclBin, WhiteDwarf, Mira, RRLyrae, YSO, Pulsar,
+// HotSubdwarf, ClassicalCep, RedSG/BlueSG, …) and there's an endless tail of
+// "*_Candidate" variants. So we WHITELIST the extended deep-sky types instead — only
+// galaxies, clusters and nebulae render; everything else (incl. all stars/candidates/
+// transients) is hidden. main_type values verified against live SIMBAD HiPS tiles;
+// filtering is display-only (Aladin still fetches the tiles). Edit this set to taste.
+const LIVE_CATALOG_SHOW_TYPES = new Set<string>([
+  // Galaxies (galaxy-scale; deliberately NOT the point-like QSO/BLLac/Blazar)
+  "Galaxy", "GtowardsGroup", "GtowardsCl", "GinPair", "GinGroup", "GinCl", "PairG",
+  "GroupG", "GroupofG", "IG", "InteractingG", "Compact_Gr_G", "ClG", "protoClG",
+  "SuperClG", "BClG", "BrightestCG", "PartofG",
+  "Seyfert", "Seyfert1", "Seyfert2", "LINER", "AGN", "RadioG", "EmissionG",
+  "StarburstG", "HII_G", "BlueCompactG", "LowSurfBrghtG", "LensedG",
+  "GravLensSystem", "GravLens",
+  // Star clusters / associations
+  "OpenCluster", "GlobCluster", "Cluster", "StarCluster", "Association", "Cl*", "Assoc*",
+  // Nebulae / ISM (extended)
+  "PlanetaryNeb", "HIIReg", "HII", "EmissionNeb", "ReflectionNeb", "DarkNeb", "Nebula",
+  "GalNeb", "SNRemnant", "SNR", "Bubble", "MolCld", "Cloud", "Globule", "GlobCld",
+  "Cometary", "ComGlob", "HVCloud", "ISM",
 ]);
-/** Keep only deep-sky-ish SIMBAD objects for the live layer: hide stellar subtypes
- *  (main_type ending in "*") and the point-like/transient/survey noise above. Passed
- *  as the catalogHiPS `filter` option, which gates per-source drawing (show/hide). */
+/** Keep only deep-sky SIMBAD objects for the live layer (galaxies/clusters/nebulae) —
+ *  everything else, including all star and *_Candidate/transient types, is hidden.
+ *  Passed as the catalogHiPS `filter` option, which gates per-source drawing (show/hide). */
 function liveCatalogKeep(source: any): boolean {
   const t: string | undefined = source?.data?.main_type;
-  if (!t) return false;
-  if (t.endsWith("*")) return false;
-  return !LIVE_CATALOG_HIDE_TYPES.has(t);
+  return !!t && LIVE_CATALOG_SHOW_TYPES.has(t);
 }
 
 // Frame-matched label colors: cyan for the per-target FOV boxes, amber for the
