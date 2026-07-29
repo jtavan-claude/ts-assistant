@@ -68,6 +68,12 @@ SNR_MIN = 20.0
 # where the disk-hugging nebula catalogs leave the overlay empty. 6' keeps it to
 # genuinely large/bright showpieces; runtime zoom-culling declutters the rest.
 GAL_MIN = 6.0
+# NGC/IC planetary nebulae (type PN) at least this large (major axis, arcmin) are
+# included even without a curated name — they carry their catalog id as the label.
+# PNe are angularly tiny, so this is a low bar; runtime zoom-culling means they only
+# surface once you're zoomed toward them. The FEATURED_PN names are added regardless
+# of size on top of this.
+PN_MIN = 0.25
 
 # Curated famous Barnard dark nebulae: number -> common name. Coordinates and
 # diameters come from the catalog fetch; only these numbers are included so the
@@ -313,15 +319,23 @@ def openngc_objects() -> list[dict]:
                 dict(id=f"C{cnum}", name=common or pretty_id(name), ra=ra, dec=dec,
                      sizeArcmin=round(maj or 5.0, 2), kind=kind, catalog="C")
             )
-        elif pretty_id(name) in FEATURED_PN and kind == "planetary" and typ not in BAD_TYPES:
-            # Curated planetary nebulae — bypass the galaxy/size floors so the
-            # small NGC/IC-only PNe (the real gap) are included.
+        elif (
+            kind == "planetary"
+            and (name.startswith("NGC") or name.startswith("IC"))
+            and typ not in BAD_TYPES
+            and (pretty_id(name) in FEATURED_PN or maj >= PN_MIN)
+        ):
+            # Planetary nebulae — bypass the galaxy/size floors so the small NGC/IC-only
+            # PNe (the real gap) are included. Curated ones (FEATURED_PN) come in at any
+            # size with a nice name; the rest come in above PN_MIN and carry their
+            # catalog id as the label ("just catalogued"). Caldwell PNe are already
+            # handled by the Caldwell branch above, so this only sees non-Caldwell ones.
             pid = pretty_id(name)
             out.append(dict(
                 id=pid,
-                name=(FEATURED_PN[pid] or common),   # curated name preferred, else OpenNGC's
+                name=(FEATURED_PN.get(pid) or common),  # curated name preferred, else OpenNGC's
                 ra=ra, dec=dec,
-                sizeArcmin=round(maj or 1.0, 2),      # PNe are small; 1' default if unsized
+                sizeArcmin=round(maj or 1.0, 2),         # PNe are small; 1' default if unsized
                 kind="planetary",
                 catalog=("IC" if name.startswith("IC") else "NGC"),
             ))
