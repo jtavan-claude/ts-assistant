@@ -6,8 +6,8 @@ hand-typed) and writes frontend/src/sky/skyObjects.generated.json:
 
   - Messier (complete, 110)      via OpenNGC (mattiaverga/OpenNGC, J2000 + sizes + names)
   - Caldwell (Patrick Moore)      via OpenNGC (Caldwell numbers tagged in Identifiers)
-  - IC highlights (size-filtered) via OpenNGC
-  - NGC galaxies (size-filtered)  via OpenNGC (off-disk fill, GAL_MIN arcmin)
+  - IC objects (size-filtered)    via OpenNGC (IC_MIN arcmin)
+  - NGC objects (size-filtered)   via OpenNGC (galaxies/nebulae/clusters, NGC_MIN)
   - Sharpless Sh2 HII regions     via VizieR VII/20  (size-filtered)
   - Large supernova remnants      via VizieR VII/284 (Green 2019, size-filtered)
   - Named dark nebulae (Barnard)  via VizieR VII/220A (curated famous ones)
@@ -61,13 +61,14 @@ BARNARD_URL = (
 
 # Inclusion thresholds (major-axis arcmin) — keep the bundle to recognisable,
 # on-sky-meaningful objects; runtime zoom-culling declutters further.
-IC_MIN = 10.0
-SH2_MIN = 30.0
+IC_MIN = 2.0
+SH2_MIN = 13.0
 SNR_MIN = 20.0
-# NGC galaxies (type G) bigger than this fill the high-galactic-latitude void
-# where the disk-hugging nebula catalogs leave the overlay empty. 6' keeps it to
-# genuinely large/bright showpieces; runtime zoom-culling declutters the rest.
-GAL_MIN = 6.0
+# NGC objects (any imaging-relevant type) bigger than this fill the overlay so it
+# never looks sparse. The runtime viewport declutter (MAX_NAMED_IN_VIEW) caps
+# on-screen density, so a big bundle does NOT crowd the view — this can be small.
+# Most of these are unnamed and carry their catalog id as the label.
+NGC_MIN = 1.6
 # NGC/IC planetary nebulae (type PN) at least this large (major axis, arcmin) are
 # included even without a curated name — they carry their catalog id as the label.
 # PNe are angularly tiny, so this is a low bar; runtime zoom-culling means they only
@@ -276,6 +277,11 @@ def parse_tsv(text: str, ncols: int) -> list[list[str]]:
 
 BAD_TYPES = ("Dup", "NonEx", "Other", "*", "**", "*Ass", "GxyCl")
 
+# NGC kinds worth showing on the overlay (imaging-relevant). Planetaries are
+# picked up by the dedicated planetary elif above, so they're intentionally
+# omitted here to avoid duplicate handling (dedup would fold them anyway).
+NGC_KINDS = ("galaxy", "nebula", "cluster")
+
 
 def openngc_objects() -> list[dict]:
     rows = list(csv.DictReader(io.StringIO(fetch(OPENNGC_URL)), delimiter=";"))
@@ -347,16 +353,19 @@ def openngc_objects() -> list[dict]:
             )
         elif (
             name.startswith("NGC")
-            and kind == "galaxy"
-            and maj >= GAL_MIN
+            and kind in NGC_KINDS
+            and maj >= NGC_MIN
             and typ not in BAD_TYPES
         ):
-            # Large NGC galaxies (mostly high galactic latitude) to fill the
-            # off-disk void. dedup() folds any that coincide with M/C/IC/featured.
+            # All imaging-relevant NGC types (galaxies, nebulae, clusters,
+            # planetaries) down to NGC_MIN, so the overlay is dense everywhere and
+            # never sparse. PNe were already caught by the planetary elif above, so
+            # this only picks up the non-PN types; dedup()/seen fold any coincident
+            # M/C/IC/featured entries. Most are unnamed and label with their id.
             num = name[3:].lstrip("0") or name[3:]
             out.append(
                 dict(id=f"NGC {num}", name=common, ra=ra, dec=dec,
-                     sizeArcmin=round(maj, 2), kind="galaxy", catalog="NGC")
+                     sizeArcmin=round(maj, 2), kind=kind, catalog="NGC")
             )
 
     # Backfill any Messier number still missing (star clouds / contested ids).
