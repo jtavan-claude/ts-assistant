@@ -1513,7 +1513,7 @@
 },
 {
 "id":"C56",
-"name":"NGC 246",
+"name":"Skull Nebula",
 "ra":11.764,
 "dec":-11.871944444444445,
 "sizeArcmin":4.08,
@@ -1944,6 +1944,15 @@
 "catalog":"IC"
 },
 {
+"id":"IC 1295",
+"name":"",
+"ra":283.6547083333333,
+"dec":-8.827027777777777,
+"sizeArcmin":1.5,
+"kind":"planetary",
+"catalog":"IC"
+},
+{
 "id":"IC 1310",
 "name":"",
 "ra":302.50408333333337,
@@ -1968,6 +1977,15 @@
 "dec":57.48905555555556,
 "sizeArcmin":14.0,
 "kind":"nebula",
+"catalog":"IC"
+},
+{
+"id":"IC 1454",
+"name":"",
+"ra":340.60420833333336,
+"dec":80.44222222222223,
+"sizeArcmin":0.47,
+"kind":"planetary",
 "catalog":"IC"
 },
 {
@@ -2007,6 +2025,15 @@
 "catalog":"IC"
 },
 {
+"id":"IC 2149",
+"name":"",
+"ra":89.09954166666667,
+"dec":46.10477777777778,
+"sizeArcmin":0.14,
+"kind":"planetary",
+"catalog":"IC"
+},
+{
 "id":"IC 2177",
 "name":"",
 "ra":106.15379166666666,
@@ -2040,6 +2067,15 @@
 "dec":-62.98894444444444,
 "sizeArcmin":15.14,
 "kind":"nebula",
+"catalog":"IC"
+},
+{
+"id":"IC 289",
+"name":"",
+"ra":47.58025,
+"dec":61.31677777777778,
+"sizeArcmin":0.58,
+"kind":"planetary",
 "catalog":"IC"
 },
 {
@@ -2079,6 +2115,15 @@
 "catalog":"IC"
 },
 {
+"id":"IC 3568",
+"name":"Lemon Slice Nebula",
+"ra":188.27825,
+"dec":82.56391666666666,
+"sizeArcmin":0.38,
+"kind":"planetary",
+"catalog":"IC"
+},
+{
 "id":"IC 359A",
 "name":"",
 "ra":64.67083333333333,
@@ -2115,6 +2160,15 @@
 "catalog":"IC"
 },
 {
+"id":"IC 418",
+"name":"Spirograph Nebula",
+"ra":81.86745833333333,
+"dec":-12.697277777777778,
+"sizeArcmin":0.2,
+"kind":"planetary",
+"catalog":"IC"
+},
+{
 "id":"IC 426",
 "name":"",
 "ra":84.13074999999999,
@@ -2148,6 +2202,15 @@
 "dec":-2.453777777777778,
 "sizeArcmin":90.0,
 "kind":"nebula",
+"catalog":"IC"
+},
+{
+"id":"IC 4406",
+"name":"Retina Nebula",
+"ra":215.61033333333336,
+"dec":-44.150194444444445,
+"sizeArcmin":0.58,
+"kind":"planetary",
 "catalog":"IC"
 },
 {
@@ -2196,6 +2259,15 @@
 "catalog":"IC"
 },
 {
+"id":"IC 4593",
+"name":"",
+"ra":242.93541666666667,
+"dec":12.071388888888889,
+"sizeArcmin":0.66,
+"kind":"planetary",
+"catalog":"IC"
+},
+{
 "id":"IC 4601",
 "name":"",
 "ra":245.07416666666666,
@@ -2241,12 +2313,39 @@
 "catalog":"IC"
 },
 {
+"id":"IC 4637",
+"name":"",
+"ra":256.2950833333333,
+"dec":-40.886361111111114,
+"sizeArcmin":0.31,
+"kind":"planetary",
+"catalog":"IC"
+},
+{
+"id":"IC 4642",
+"name":"",
+"ra":257.9384166666667,
+"dec":-55.399,
+"sizeArcmin":0.28,
+"kind":"planetary",
+"catalog":"IC"
+},
+{
 "id":"IC 4665",
 "name":"",
 "ra":266.61324999999994,
 "dec":5.648722222222221,
 "sizeArcmin":24.6,
 "kind":"cluster",
+"catalog":"IC"
+},
+{
+"id":"IC 4673",
+"name":"",
+"ra":270.8266666666667,
+"dec":-27.10611111111111,
+"sizeArcmin":0.25,
+"kind":"planetary",
 "catalog":"IC"
 },
 {
@@ -2295,6 +2394,15 @@
 "catalog":"IC"
 },
 {
+"id":"IC 5148",
+"name":"Spare Tyre Nebula",
+"ra":329.8966666666667,
+"dec":-39.38583333333333,
+"sizeArcmin":2.3,
+"kind":"planetary",
+"catalog":"IC"
+},
+{
 "id":"IC 59",
 "name":"",
 "ra":14.369208333333333,
@@ -2310,6 +2418,15 @@
 "dec":60.91169444444444,
 "sizeArcmin":10.0,
 "kind":"nebula",
+"catalog":"IC"
+},
+{
+"id":"IC 972",
+"name":"",
+"ra":211.10795833333333,
+"dec":-17.228194444444444,
+"sizeArcmin":0.7,
+"kind":"planetary",
 "catalog":"IC"
 },
 {
@@ -3249,6 +3366,15 @@
 "catalog":"NGC"
 },
 {
+"id":"NGC 1360",
+"name":"",
+"ra":53.31104166666666,
+"dec":-25.87172222222222,
+"sizeArcmin":6.42,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
 "id":"NGC 1365",
 "name":"",
 "ra":53.40154166666666,
@@ -3294,6 +3420,15 @@
 "catalog":"NGC"
 },
 {
+"id":"NGC 1501",
+"name":"",
+"ra":61.747375,
+"dec":60.92069444444444,
+"sizeArcmin":0.87,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
 "id":"NGC 1512",
 "name":"",
 "ra":60.976166666666664,
@@ -3303,12 +3438,30 @@
 "catalog":"NGC"
 },
 {
+"id":"NGC 1514",
+"name":"Crystal Ball Nebula",
+"ra":62.32062500000001,
+"dec":30.775916666666667,
+"sizeArcmin":2.2,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
 "id":"NGC 1532",
 "name":"",
 "ra":63.01804166666666,
 "dec":-32.87422222222222,
 "sizeArcmin":11.27,
 "kind":"galaxy",
+"catalog":"NGC"
+},
+{
+"id":"NGC 1535",
+"name":"Cleopatra's Eye",
+"ra":63.56570833333333,
+"dec":-12.739388888888888,
+"sizeArcmin":0.85,
+"kind":"planetary",
 "catalog":"NGC"
 },
 {
@@ -3348,12 +3501,30 @@
 "catalog":"NGC"
 },
 {
+"id":"NGC 2022",
+"name":"",
+"ra":85.52587500000001,
+"dec":9.086527777777778,
+"sizeArcmin":0.32,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
 "id":"NGC 2024",
 "name":"Flame Nebula",
 "ra":85.43,
 "dec":-1.85,
 "sizeArcmin":30,
 "kind":"nebula",
+"catalog":"NGC"
+},
+{
+"id":"NGC 2242",
+"name":"",
+"ra":98.53016666666666,
+"dec":44.777027777777775,
+"sizeArcmin":0.45,
+"kind":"planetary",
 "catalog":"NGC"
 },
 {
@@ -3366,12 +3537,57 @@
 "catalog":"NGC"
 },
 {
+"id":"NGC 2346",
+"name":"",
+"ra":107.345875,
+"dec":-0.809138888888889,
+"sizeArcmin":0.87,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 2371",
+"name":"",
+"ra":111.39441666666667,
+"dec":29.49063888888889,
+"sizeArcmin":2.2,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
 "id":"NGC 24",
 "name":"",
 "ra":2.4855833333333335,
 "dec":-24.96313888888889,
 "sizeArcmin":6.18,
 "kind":"galaxy",
+"catalog":"NGC"
+},
+{
+"id":"NGC 2440",
+"name":"",
+"ra":115.48066666666668,
+"dec":-18.208472222222223,
+"sizeArcmin":0.27,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 2452",
+"name":"",
+"ra":116.85987499999999,
+"dec":-27.334,
+"sizeArcmin":0.32,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 2610",
+"name":"",
+"ra":128.34750000000003,
+"dec":-16.149444444444445,
+"sizeArcmin":0.63,
+"kind":"planetary",
 "catalog":"NGC"
 },
 {
@@ -3393,6 +3609,15 @@
 "catalog":"NGC"
 },
 {
+"id":"NGC 2818",
+"name":"",
+"ra":139.00625,
+"dec":-36.62694444444445,
+"sizeArcmin":0.83,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
 "id":"NGC 2835",
 "name":"",
 "ra":139.47045833333334,
@@ -3408,6 +3633,15 @@
 "dec":50.97652777777778,
 "sizeArcmin":6.9,
 "kind":"galaxy",
+"catalog":"NGC"
+},
+{
+"id":"NGC 2899",
+"name":"",
+"ra":141.76233333333332,
+"dec":-56.10602777777778,
+"sizeArcmin":1.5,
+"kind":"planetary",
 "catalog":"NGC"
 },
 {
@@ -3471,6 +3705,15 @@
 "dec":45.54961111111111,
 "sizeArcmin":6.46,
 "kind":"galaxy",
+"catalog":"NGC"
+},
+{
+"id":"NGC 3211",
+"name":"",
+"ra":154.46045833333332,
+"dec":-62.67005555555556,
+"sizeArcmin":0.27,
+"kind":"planetary",
 "catalog":"NGC"
 },
 {
@@ -3546,12 +3789,30 @@
 "catalog":"NGC"
 },
 {
+"id":"NGC 3699",
+"name":"",
+"ra":171.98812499999997,
+"dec":-59.95805555555556,
+"sizeArcmin":0.75,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
 "id":"NGC 3717",
 "name":"",
 "ra":172.88329166666668,
 "dec":-30.307750000000002,
 "sizeArcmin":6.52,
 "kind":"galaxy",
+"catalog":"NGC"
+},
+{
+"id":"NGC 3918",
+"name":"Blue Planetary",
+"ra":177.57479166666667,
+"dec":-57.18233333333333,
+"sizeArcmin":0.32,
+"kind":"planetary",
 "catalog":"NGC"
 },
 {
@@ -3570,6 +3831,15 @@
 "dec":52.32677777777778,
 "sizeArcmin":6.14,
 "kind":"galaxy",
+"catalog":"NGC"
+},
+{
+"id":"NGC 4071",
+"name":"",
+"ra":181.0657083333333,
+"dec":-67.31011111111111,
+"sizeArcmin":1.05,
+"kind":"planetary",
 "catalog":"NGC"
 },
 {
@@ -3627,6 +3897,15 @@
 "catalog":"NGC"
 },
 {
+"id":"NGC 4361",
+"name":"",
+"ra":186.1281666666667,
+"dec":-18.784833333333335,
+"sizeArcmin":1.05,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
 "id":"NGC 4438",
 "name":"Eyes",
 "ra":186.93995833333332,
@@ -3667,7 +3946,7 @@
 "name":"",
 "ra":188.512875,
 "dec":7.699527777777778,
-"sizeArcmin":6.95,
+"sizeArcmin":9.64,
 "kind":"galaxy",
 "catalog":"NGC"
 },
@@ -3807,12 +4086,30 @@
 "catalog":"NGC"
 },
 {
+"id":"NGC 5189",
+"name":"Spiral Planetary Nebula",
+"ra":203.387125,
+"dec":-65.97405555555555,
+"sizeArcmin":2.33,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
 "id":"NGC 5746",
 "name":"",
 "ra":221.233,
 "dec":1.9549999999999998,
 "sizeArcmin":7.24,
 "kind":"galaxy",
+"catalog":"NGC"
+},
+{
+"id":"NGC 5844",
+"name":"",
+"ra":227.67062499999997,
+"dec":-64.67366666666668,
+"sizeArcmin":0.88,
+"kind":"planetary",
 "catalog":"NGC"
 },
 {
@@ -3825,12 +4122,120 @@
 "catalog":"NGC"
 },
 {
+"id":"NGC 6026",
+"name":"",
+"ra":240.33712500000001,
+"dec":-34.54422222222222,
+"sizeArcmin":0.67,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6058",
+"name":"",
+"ra":241.11058333333335,
+"dec":40.683055555555555,
+"sizeArcmin":0.38,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6072",
+"name":"",
+"ra":243.2425,
+"dec":-36.230000000000004,
+"sizeArcmin":1.17,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6153",
+"name":"",
+"ra":247.87766666666667,
+"dec":-40.25344444444445,
+"sizeArcmin":0.4,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6210",
+"name":"Turtle Nebula",
+"ra":251.123,
+"dec":23.799833333333336,
+"sizeArcmin":0.5,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
 "id":"NGC 625",
 "name":"",
 "ra":23.769291666666668,
 "dec":-41.43619444444444,
 "sizeArcmin":6.55,
 "kind":"galaxy",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6309",
+"name":"Box Nebula",
+"ra":258.5179166666667,
+"dec":-12.910555555555556,
+"sizeArcmin":0.26,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6369",
+"name":"Little Ghost Nebula",
+"ra":262.3354166666667,
+"dec":-23.759444444444444,
+"sizeArcmin":0.63,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6445",
+"name":"Little Gem",
+"ra":267.31275,
+"dec":-20.0095,
+"sizeArcmin":0.55,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6537",
+"name":"Red Spider Nebula",
+"ra":271.3045833333333,
+"dec":-19.842972222222222,
+"sizeArcmin":0.17,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6563",
+"name":"",
+"ra":273.0104166666667,
+"dec":-33.86833333333333,
+"sizeArcmin":0.79,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6572",
+"name":"Emerald Nebula",
+"ra":273.025875,
+"dec":6.853722222222222,
+"sizeArcmin":0.18,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6629",
+"name":"",
+"ra":276.42691666666667,
+"dec":-23.20288888888889,
+"sizeArcmin":0.26,
+"kind":"planetary",
 "catalog":"NGC"
 },
 {
@@ -3843,12 +4248,210 @@
 "catalog":"NGC"
 },
 {
+"id":"NGC 6742",
+"name":"",
+"ra":284.8329166666667,
+"dec":48.46527777777778,
+"sizeArcmin":0.55,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6751",
+"name":"Glowing Eye Nebula",
+"ra":286.4814583333333,
+"dec":-5.992305555555555,
+"sizeArcmin":0.34,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6765",
+"name":"",
+"ra":287.77708333333334,
+"dec":30.545555555555556,
+"sizeArcmin":0.67,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6772",
+"name":"",
+"ra":288.65125,
+"dec":-2.706805555555556,
+"sizeArcmin":1.07,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6778",
+"name":"",
+"ra":289.6035416666667,
+"dec":-1.5963611111111113,
+"sizeArcmin":0.26,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6781",
+"name":"Snowglobe Nebula",
+"ra":289.61775,
+"dec":6.539722222222222,
+"sizeArcmin":1.8,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6804",
+"name":"",
+"ra":292.8974583333333,
+"dec":9.225166666666667,
+"sizeArcmin":0.58,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6813",
+"name":"",
+"ra":295.0935,
+"dec":27.309555555555555,
+"sizeArcmin":3.0,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6818",
+"name":"Little Gem Nebula",
+"ra":295.9905416666666,
+"dec":-14.153166666666667,
+"sizeArcmin":0.77,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6842",
+"name":"",
+"ra":298.75941666666665,
+"dec":29.289166666666667,
+"sizeArcmin":0.95,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6852",
+"name":"",
+"ra":300.1631666666667,
+"dec":1.7281111111111112,
+"sizeArcmin":0.47,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6891",
+"name":"",
+"ra":303.78683333333333,
+"dec":12.70436111111111,
+"sizeArcmin":0.25,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6894",
+"name":"",
+"ra":304.1002083333333,
+"dec":30.565083333333334,
+"sizeArcmin":0.67,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 6905",
+"name":"Blue Flash Nebula",
+"ra":305.5957916666667,
+"dec":20.10452777777778,
+"sizeArcmin":0.67,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 7008",
+"name":"Fetus Nebula",
+"ra":315.13666666666666,
+"dec":54.543194444444445,
+"sizeArcmin":1.43,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 7026",
+"name":"",
+"ra":316.577,
+"dec":47.85219444444444,
+"sizeArcmin":0.33,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 7027",
+"name":"",
+"ra":316.756375,
+"dec":42.23652777777778,
+"sizeArcmin":0.23,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 7048",
+"name":"",
+"ra":318.56333333333333,
+"dec":46.28861111111111,
+"sizeArcmin":1.02,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 7076",
+"name":"",
+"ra":321.59791666666666,
+"dec":62.8925,
+"sizeArcmin":0.93,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
 "id":"NGC 7090",
 "name":"",
 "ra":324.12025,
 "dec":-54.55733333333333,
 "sizeArcmin":8.15,
 "kind":"galaxy",
+"catalog":"NGC"
+},
+{
+"id":"NGC 7094",
+"name":"",
+"ra":324.22070833333333,
+"dec":12.788638888888888,
+"sizeArcmin":1.65,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 7139",
+"name":"",
+"ra":326.5358333333333,
+"dec":63.79194444444444,
+"sizeArcmin":1.28,
+"kind":"planetary",
+"catalog":"NGC"
+},
+{
+"id":"NGC 7354",
+"name":"",
+"ra":340.0817083333334,
+"dec":61.28483333333333,
+"sizeArcmin":0.38,
+"kind":"planetary",
 "catalog":"NGC"
 },
 {

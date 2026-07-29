@@ -11,6 +11,8 @@ hand-typed) and writes frontend/src/sky/skyObjects.generated.json:
   - Sharpless Sh2 HII regions     via VizieR VII/20  (size-filtered)
   - Large supernova remnants      via VizieR VII/284 (Green 2019, size-filtered)
   - Named dark nebulae (Barnard)  via VizieR VII/220A (curated famous ones)
+  - Curated planetary nebulae      via OpenNGC (larger/brighter popular ones,
+                                    including NGC/IC-only PNe below the size floors)
   - A few famous NGC-only showpieces (featured) so they aren't lost
 
 Run from anywhere (needs outbound HTTPS to GitHub raw + CDS VizieR):
@@ -66,6 +68,12 @@ SNR_MIN = 20.0
 # where the disk-hugging nebula catalogs leave the overlay empty. 6' keeps it to
 # genuinely large/bright showpieces; runtime zoom-culling declutters the rest.
 GAL_MIN = 6.0
+# NGC/IC planetary nebulae (type PN) at least this large (major axis, arcmin) are
+# included even without a curated name — they carry their catalog id as the label.
+# PNe are angularly tiny, so this is a low bar; runtime zoom-culling means they only
+# surface once you're zoomed toward them. The FEATURED_PN names are added regardless
+# of size on top of this.
+PN_MIN = 0.25
 
 # Curated famous Barnard dark nebulae: number -> common name. Coordinates and
 # diameters come from the catalog fetch; only these numbers are included so the
@@ -136,6 +144,33 @@ FEATURED_NGC = [
     ("NGC 5907", "Splinter Galaxy", 228.97, 56.33, 13, "galaxy"),
 ]
 
+# Curated planetary nebulae: pretty-id -> preferred common name ("" means use
+# OpenNGC's common name). PNe are popular imaging targets but underrepresented —
+# the NGC branch is galaxy-only and the IC branch needs >=10', while PNe are
+# small, so NGC/IC-only PNe fall through. This whitelist catches them (and lists
+# the famous Caldwell PNe as a safety net; dedup folds any overlap).
+FEATURED_PN = {
+    # NGC/IC-only (the real gap — not Messier/Caldwell)
+    "NGC 7027": "",                    "NGC 6210": "Turtle Nebula",
+    "NGC 6572": "Emerald Nebula",      "NGC 6781": "Snowglobe Nebula",
+    "NGC 2438": "",                    "NGC 1514": "Crystal Ball Nebula",
+    "NGC 6818": "Little Gem Nebula",   "NGC 1535": "Cleopatra's Eye",
+    "NGC 2440": "",                    "NGC 6369": "Little Ghost Nebula",
+    "NGC 6537": "Red Spider Nebula",   "NGC 7008": "Fetus Nebula",
+    "NGC 2818": "",                    "NGC 6751": "Glowing Eye Nebula",
+    "NGC 7048": "",                    "NGC 6772": "",
+    "IC 418": "Spirograph Nebula",     "IC 5148": "Spare Tyre Nebula",
+    "IC 4406": "Retina Nebula",        "IC 3568": "Lemon Slice Nebula",
+    "IC 289": "",                      "IC 2149": "",
+    # Famous Caldwell PNe (safety net; normally arrive via the Caldwell branch)
+    "NGC 6543": "Cat's Eye Nebula",    "NGC 7009": "Saturn Nebula",
+    "NGC 2392": "Eskimo Nebula",       "NGC 3242": "Ghost of Jupiter",
+    "NGC 7662": "Blue Snowball Nebula","NGC 6826": "Blinking Planetary",
+    "NGC 40": "Bow-Tie Nebula",        "NGC 246": "Skull Nebula",
+    "NGC 3132": "Southern Ring Nebula","NGC 6302": "Bug Nebula",
+    "NGC 5189": "Spiral Planetary Nebula",
+}
+
 # Messier objects not cleanly in OpenNGC (star clouds / contested ids), to reach
 # a complete 110. Only used to backfill numbers still missing after the CSVs.
 MESSIER_EXTRA = {
@@ -155,6 +190,9 @@ PRIORITY = {"M": 0, "C": 1, "IC": 2, "Sh2": 3, "NGC": 4, "SNR": 5, "B": 6, "LDN"
 # IC 434 "includes NAME Horsehead Nebula".
 NAME_OVERRIDES = {
     "IC 434": "Horsehead Nebula",
+    # NGC 246 (a whitelisted PN) arrives via the Caldwell branch as C56 with no
+    # OpenNGC common name, so the FEATURED_PN nickname never applies — restore it.
+    "C56": "Skull Nebula",
 }
 
 # Matches a Caldwell designation token in OpenNGC's Identifiers column ("C 020").
@@ -281,6 +319,26 @@ def openngc_objects() -> list[dict]:
                 dict(id=f"C{cnum}", name=common or pretty_id(name), ra=ra, dec=dec,
                      sizeArcmin=round(maj or 5.0, 2), kind=kind, catalog="C")
             )
+        elif (
+            kind == "planetary"
+            and (name.startswith("NGC") or name.startswith("IC"))
+            and typ not in BAD_TYPES
+            and (pretty_id(name) in FEATURED_PN or maj >= PN_MIN)
+        ):
+            # Planetary nebulae — bypass the galaxy/size floors so the small NGC/IC-only
+            # PNe (the real gap) are included. Curated ones (FEATURED_PN) come in at any
+            # size with a nice name; the rest come in above PN_MIN and carry their
+            # catalog id as the label ("just catalogued"). Caldwell PNe are already
+            # handled by the Caldwell branch above, so this only sees non-Caldwell ones.
+            pid = pretty_id(name)
+            out.append(dict(
+                id=pid,
+                name=(FEATURED_PN.get(pid) or common),  # curated name preferred, else OpenNGC's
+                ra=ra, dec=dec,
+                sizeArcmin=round(maj or 1.0, 2),         # PNe are small; 1' default if unsized
+                kind="planetary",
+                catalog=("IC" if name.startswith("IC") else "NGC"),
+            ))
         elif name.startswith("IC") and maj >= IC_MIN and typ not in BAD_TYPES:
             num = name[2:].lstrip("0") or name[2:]
             out.append(
