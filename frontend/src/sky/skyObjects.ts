@@ -11,6 +11,11 @@
 //   - Sharpless Sh2 HII regions      — VizieR VII/20
 //   - Large supernova remnants       — VizieR VII/284 (Green 2019)
 //   - Named dark nebulae (Barnard)   — VizieR VII/220A (+ a couple of LDN showpieces)
+//   - Lynds' Bright Nebulae (LBN)    — VizieR VII/9  (sizeable/brighter)
+//   - RCW southern HII regions       — VizieR VII/216 (size-filtered)
+//   - Large planetary nebulae (Abell)— VizieR V/84 (Acker+ 1992, size-filtered)
+//   - vdB reflection nebulae         — VizieR VII/21 (size-filtered)
+//   - Bright non-NGC open clusters   — curated (Coathanger, Hyades, ...)
 //   - A few famous NGC-only showpieces (North America, Helix, ...)
 // Re-run the generator to refresh; do not hand-edit the JSON.
 //
@@ -18,8 +23,24 @@
 import generated from "./skyObjects.generated.json";
 
 /** Which source catalog an object came from. ("B" = Barnard dark nebula,
- * "LDN" = Lynds Dark Nebula showpiece.) */
-export type Catalog = "M" | "C" | "IC" | "Sh2" | "SNR" | "NGC" | "B" | "LDN";
+ * "LDN" = Lynds Dark Nebula showpiece, "LBN" = Lynds Bright Nebula,
+ * "RCW" = southern HII region, "Abell" = large planetary nebula,
+ * "vdB" = van den Bergh reflection nebula, "Cr" = bright non-NGC open cluster
+ * (Collinder/Melotte).) */
+export type Catalog =
+  | "M"
+  | "C"
+  | "IC"
+  | "Sh2"
+  | "SNR"
+  | "NGC"
+  | "B"
+  | "LDN"
+  | "LBN"
+  | "RCW"
+  | "Abell"
+  | "vdB"
+  | "Cr";
 
 export interface SkyObject {
   /** Primary catalog id, e.g. "M31", "Sh2-155", "Cygnus Loop". */

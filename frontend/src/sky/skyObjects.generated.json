@@ -34641,6 +34641,2094 @@
 "catalog":"SNR"
 },
 {
+"id":"RCW 1",
+"name":"",
+"ra":107.5841,
+"dec":-12.0327,
+"sizeArcmin":150.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 104",
+"name":"",
+"ra":246.0089,
+"dec":-51.5154,
+"sizeArcmin":20.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 105",
+"name":"",
+"ra":242.4993,
+"dec":-49.1306,
+"sizeArcmin":45.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 106",
+"name":"",
+"ra":245.2001,
+"dec":-50.9189,
+"sizeArcmin":35.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 113",
+"name":"",
+"ra":252.1291,
+"dec":-42.0875,
+"sizeArcmin":360.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 114",
+"name":"",
+"ra":260.4152,
+"dec":-45.0486,
+"sizeArcmin":330.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 126",
+"name":"",
+"ra":259.2166,
+"dec":-36.3541,
+"sizeArcmin":16.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 129",
+"name":"",
+"ra":249.2791,
+"dec":-28.1003,
+"sizeArcmin":180.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 132",
+"name":"",
+"ra":263.3183,
+"dec":-32.7344,
+"sizeArcmin":110.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 137",
+"name":"",
+"ra":266.4467,
+"dec":-29.3192,
+"sizeArcmin":18.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 146",
+"name":"",
+"ra":271.5147,
+"dec":-23.9945,
+"sizeArcmin":120.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 15",
+"name":"",
+"ra":107.5164,
+"dec":-25.0826,
+"sizeArcmin":300.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 153",
+"name":"",
+"ra":274.7381,
+"dec":-19.3121,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 154",
+"name":"",
+"ra":271.4759,
+"dec":-16.9946,
+"sizeArcmin":40.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 161",
+"name":"",
+"ra":275.2158,
+"dec":-15.1264,
+"sizeArcmin":80.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 162",
+"name":"",
+"ra":275.7132,
+"dec":-14.6407,
+"sizeArcmin":22.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 167",
+"name":"",
+"ra":275.1992,
+"dec":-11.8765,
+"sizeArcmin":180.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 19",
+"name":"",
+"ra":123.8485,
+"dec":-35.8541,
+"sizeArcmin":48.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 22",
+"name":"",
+"ra":138.9038,
+"dec":-31.3757,
+"sizeArcmin":45.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 27",
+"name":"",
+"ra":129.5831,
+"dec":-40.3766,
+"sizeArcmin":100.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 32",
+"name":"",
+"ra":131.2063,
+"dec":-41.3326,
+"sizeArcmin":27.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 33",
+"name":"",
+"ra":132.8311,
+"dec":-42.0885,
+"sizeArcmin":95.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 35",
+"name":"",
+"ra":132.8677,
+"dec":-44.1053,
+"sizeArcmin":30.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 38",
+"name":"",
+"ra":134.8002,
+"dec":-47.4621,
+"sizeArcmin":40.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 4",
+"name":"",
+"ra":110.9764,
+"dec":-8.5983,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 45",
+"name":"",
+"ra":152.9494,
+"dec":-56.3975,
+"sizeArcmin":16.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 46",
+"name":"",
+"ra":151.9345,
+"dec":-57.4952,
+"sizeArcmin":15.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 47",
+"name":"",
+"ra":151.2931,
+"dec":-58.9438,
+"sizeArcmin":25.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 48",
+"name":"",
+"ra":153.9454,
+"dec":-57.8497,
+"sizeArcmin":15.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 52",
+"name":"",
+"ra":161.369,
+"dec":-58.5635,
+"sizeArcmin":15.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 59",
+"name":"",
+"ra":174.3465,
+"dec":-56.9436,
+"sizeArcmin":180.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 61",
+"name":"",
+"ra":172.6409,
+"dec":-63.776,
+"sizeArcmin":15.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 63",
+"name":"",
+"ra":184.9193,
+"dec":-52.2776,
+"sizeArcmin":250.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 68",
+"name":"",
+"ra":190.0528,
+"dec":-61.8745,
+"sizeArcmin":15.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 74",
+"name":"",
+"ra":197.7514,
+"dec":-62.8158,
+"sizeArcmin":15.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 75",
+"name":"",
+"ra":199.9436,
+"dec":-62.5125,
+"sizeArcmin":18.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 78",
+"name":"",
+"ra":203.4718,
+"dec":-62.2563,
+"sizeArcmin":45.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 80",
+"name":"",
+"ra":206.753,
+"dec":-62.6496,
+"sizeArcmin":21.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 83",
+"name":"",
+"ra":212.1654,
+"dec":-62.0703,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 85",
+"name":"",
+"ra":215.1801,
+"dec":-61.3956,
+"sizeArcmin":25.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"RCW 94",
+"name":"",
+"ra":235.2045,
+"dec":-54.1608,
+"sizeArcmin":20.0,
+"kind":"nebula",
+"catalog":"RCW"
+},
+{
+"id":"LBN 1036",
+"name":"",
+"ra":109.0915,
+"dec":-10.5897,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1037",
+"name":"",
+"ra":106.3335,
+"dec":-12.0769,
+"sizeArcmin":150.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1060",
+"name":"",
+"ra":111.7722,
+"dec":-24.6021,
+"sizeArcmin":180.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1071",
+"name":"",
+"ra":130.053,
+"dec":-22.3448,
+"sizeArcmin":80.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1073",
+"name":"",
+"ra":130.0427,
+"dec":-24.6781,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1074",
+"name":"",
+"ra":131.0463,
+"dec":-24.1818,
+"sizeArcmin":70.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1075",
+"name":"",
+"ra":131.7981,
+"dec":-24.0179,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1076",
+"name":"",
+"ra":132.5456,
+"dec":-24.854,
+"sizeArcmin":70.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1078",
+"name":"",
+"ra":135.0438,
+"dec":-26.1961,
+"sizeArcmin":210.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1083",
+"name":"",
+"ra":138.0407,
+"dec":-28.2062,
+"sizeArcmin":300.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1093",
+"name":"",
+"ra":239.0062,
+"dec":-25.9783,
+"sizeArcmin":90.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1095",
+"name":"",
+"ra":240.0057,
+"dec":-25.6408,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1102",
+"name":"",
+"ra":247.5246,
+"dec":-27.6082,
+"sizeArcmin":80.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1107",
+"name":"",
+"ra":247.2687,
+"dec":-26.6093,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1114",
+"name":"",
+"ra":243.7275,
+"dec":-19.2915,
+"sizeArcmin":220.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1116",
+"name":"",
+"ra":263.3146,
+"dec":-32.2011,
+"sizeArcmin":150.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 1122",
+"name":"",
+"ra":235.169,
+"dec":-7.1603,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 12",
+"name":"",
+"ra":247.694,
+"dec":-11.7739,
+"sizeArcmin":65.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 159",
+"name":"",
+"ra":300.4842,
+"dec":33.1402,
+"sizeArcmin":80.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 174",
+"name":"",
+"ra":300.9728,
+"dec":35.1423,
+"sizeArcmin":80.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 175",
+"name":"",
+"ra":303.4852,
+"dec":33.8193,
+"sizeArcmin":53.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 187",
+"name":"",
+"ra":301.964,
+"dec":36.8131,
+"sizeArcmin":80.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 190",
+"name":"",
+"ra":300.9544,
+"dec":37.9756,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 20",
+"name":"",
+"ra":246.6837,
+"dec":-9.6117,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 206",
+"name":"",
+"ra":303.9594,
+"dec":38.1546,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 208",
+"name":"",
+"ra":302.4507,
+"dec":38.9818,
+"sizeArcmin":120.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 216",
+"name":"",
+"ra":301.6922,
+"dec":39.9787,
+"sizeArcmin":45.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 227",
+"name":"",
+"ra":301.6838,
+"dec":41.1453,
+"sizeArcmin":100.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 234",
+"name":"",
+"ra":305.4528,
+"dec":39.6606,
+"sizeArcmin":110.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 236",
+"name":"",
+"ra":303.9425,
+"dec":40.6545,
+"sizeArcmin":90.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 237",
+"name":"",
+"ra":299.6675,
+"dec":42.7202,
+"sizeArcmin":53.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 239",
+"name":"",
+"ra":303.4366,
+"dec":41.3192,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 240",
+"name":"",
+"ra":304.9448,
+"dec":40.6586,
+"sizeArcmin":120.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 245",
+"name":"",
+"ra":306.9541,
+"dec":39.9998,
+"sizeArcmin":45.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 249",
+"name":"",
+"ra":306.4495,
+"dec":40.4978,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 250",
+"name":"",
+"ra":313.7435,
+"dec":36.1916,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 251",
+"name":"",
+"ra":304.1847,
+"dec":41.8222,
+"sizeArcmin":45.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 255",
+"name":"",
+"ra":312.9862,
+"dec":37.1889,
+"sizeArcmin":70.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 257",
+"name":"",
+"ra":307.4509,
+"dec":40.6684,
+"sizeArcmin":120.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 259",
+"name":"",
+"ra":304.6835,
+"dec":42.1575,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 264",
+"name":"",
+"ra":301.9141,
+"dec":43.813,
+"sizeArcmin":70.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 267",
+"name":"",
+"ra":307.4475,
+"dec":41.1684,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 272",
+"name":"",
+"ra":300.653,
+"dec":44.8077,
+"sizeArcmin":90.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 279",
+"name":"",
+"ra":306.6886,
+"dec":42.1655,
+"sizeArcmin":70.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 288",
+"name":"",
+"ra":307.9431,
+"dec":42.0036,
+"sizeArcmin":45.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 292",
+"name":"",
+"ra":306.1801,
+"dec":43.1635,
+"sizeArcmin":90.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 294",
+"name":"",
+"ra":300.8952,
+"dec":45.8088,
+"sizeArcmin":70.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 297",
+"name":"",
+"ra":300.391,
+"dec":46.14,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 299",
+"name":"",
+"ra":315.9902,
+"dec":37.866,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 30",
+"name":"",
+"ra":246.1737,
+"dec":-7.4473,
+"sizeArcmin":140.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 300",
+"name":"",
+"ra":305.6725,
+"dec":43.9948,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 310",
+"name":"",
+"ra":304.1592,
+"dec":45.1555,
+"sizeArcmin":360.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 313",
+"name":"",
+"ra":302.9004,
+"dec":45.8171,
+"sizeArcmin":55.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 315",
+"name":"",
+"ra":307.6768,
+"dec":44.1693,
+"sizeArcmin":90.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 32",
+"name":"",
+"ra":248.1795,
+"dec":-8.605,
+"sizeArcmin":65.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 320",
+"name":"",
+"ra":311.9531,
+"dec":42.1853,
+"sizeArcmin":90.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 321",
+"name":"",
+"ra":317.994,
+"dec":38.206,
+"sizeArcmin":85.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 326",
+"name":"",
+"ra":304.9003,
+"dec":46.4918,
+"sizeArcmin":80.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 331",
+"name":"",
+"ra":303.3859,
+"dec":47.6524,
+"sizeArcmin":120.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 334",
+"name":"",
+"ra":311.9429,
+"dec":43.6853,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 336",
+"name":"",
+"ra":305.3961,
+"dec":47.1605,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 339",
+"name":"",
+"ra":309.4231,
+"dec":45.3426,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 349",
+"name":"",
+"ra":313.9525,
+"dec":43.1924,
+"sizeArcmin":45.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 352",
+"name":"",
+"ra":307.4023,
+"dec":47.1683,
+"sizeArcmin":85.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 356",
+"name":"",
+"ra":314.9557,
+"dec":43.1959,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 361",
+"name":"",
+"ra":310.4212,
+"dec":46.013,
+"sizeArcmin":80.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 365",
+"name":"",
+"ra":316.4605,
+"dec":43.201,
+"sizeArcmin":100.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 367",
+"name":"",
+"ra":308.903,
+"dec":47.6741,
+"sizeArcmin":150.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 370",
+"name":"",
+"ra":305.6276,
+"dec":49.3281,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 373",
+"name":"North America region",
+"ra":315.4508,
+"dec":44.1976,
+"sizeArcmin":120.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 378",
+"name":"",
+"ra":314.1886,
+"dec":45.3599,
+"sizeArcmin":90.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 381",
+"name":"",
+"ra":308.6436,
+"dec":48.6731,
+"sizeArcmin":100.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 382",
+"name":"",
+"ra":307.8866,
+"dec":49.1702,
+"sizeArcmin":240.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 384",
+"name":"",
+"ra":314.6879,
+"dec":45.695,
+"sizeArcmin":120.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 385",
+"name":"",
+"ra":315.6949,
+"dec":45.1984,
+"sizeArcmin":70.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 39",
+"name":"",
+"ra":249.1763,
+"dec":-7.8505,
+"sizeArcmin":70.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 400",
+"name":"",
+"ra":320.2203,
+"dec":43.7132,
+"sizeArcmin":90.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 401",
+"name":"",
+"ra":320.724,
+"dec":43.3814,
+"sizeArcmin":100.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 429",
+"name":"",
+"ra":337.5538,
+"dec":39.0901,
+"sizeArcmin":100.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 437",
+"name":"",
+"ra":338.0509,
+"dec":40.591,
+"sizeArcmin":75.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 445",
+"name":"",
+"ra":317.8264,
+"dec":59.2891,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 453",
+"name":"",
+"ra":318.821,
+"dec":60.209,
+"sizeArcmin":100.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 457",
+"name":"",
+"ra":326.1418,
+"dec":58.0639,
+"sizeArcmin":90.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 479",
+"name":"",
+"ra":333.1899,
+"dec":57.9146,
+"sizeArcmin":45.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 51",
+"name":"",
+"ra":273.981,
+"dec":-17.9824,
+"sizeArcmin":210.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 534",
+"name":"",
+"ra":355.1121,
+"dec":48.7772,
+"sizeArcmin":90.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 564",
+"name":"",
+"ra":0.3911,
+"dec":48.6117,
+"sizeArcmin":70.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 587",
+"name":"",
+"ra":0.6447,
+"dec":68.6116,
+"sizeArcmin":95.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 607",
+"name":"",
+"ra":11.7278,
+"dec":57.9395,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 656",
+"name":"",
+"ra":38.1909,
+"dec":60.5535,
+"sizeArcmin":55.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 774",
+"name":"",
+"ra":58.7532,
+"dec":25.4793,
+"sizeArcmin":180.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 786",
+"name":"",
+"ra":63.2591,
+"dec":25.6269,
+"sizeArcmin":180.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 791",
+"name":"",
+"ra":78.5746,
+"dec":34.0571,
+"sizeArcmin":100.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 794",
+"name":"",
+"ra":81.3368,
+"dec":35.5439,
+"sizeArcmin":55.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 796",
+"name":"",
+"ra":79.5752,
+"dec":34.0523,
+"sizeArcmin":240.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 801",
+"name":"",
+"ra":121.3915,
+"dec":46.3569,
+"sizeArcmin":90.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 811",
+"name":"",
+"ra":119.6387,
+"dec":45.5309,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 865",
+"name":"",
+"ra":83.1894,
+"dec":10.0347,
+"sizeArcmin":270.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 881",
+"name":"",
+"ra":80.6647,
+"dec":5.0468,
+"sizeArcmin":45.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 884",
+"name":"",
+"ra":79.9106,
+"dec":4.217,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 885",
+"name":"",
+"ra":82.664,
+"dec":4.8705,
+"sizeArcmin":70.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 888",
+"name":"",
+"ra":82.1591,
+"dec":3.8729,
+"sizeArcmin":55.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 890",
+"name":"",
+"ra":80.6543,
+"dec":2.8801,
+"sizeArcmin":120.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 910",
+"name":"",
+"ra":77.6304,
+"dec":-2.1055,
+"sizeArcmin":45.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 915",
+"name":"",
+"ra":78.8804,
+"dec":-2.1115,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 917",
+"name":"",
+"ra":71.863,
+"dec":-5.9119,
+"sizeArcmin":70.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 919",
+"name":"",
+"ra":79.8819,
+"dec":-1.7829,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 932",
+"name":"",
+"ra":97.9244,
+"dec":6.9632,
+"sizeArcmin":55.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 933",
+"name":"",
+"ra":86.8955,
+"dec":1.0167,
+"sizeArcmin":420.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 937",
+"name":"",
+"ra":79.624,
+"dec":-3.4484,
+"sizeArcmin":200.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 940",
+"name":"",
+"ra":83.6326,
+"dec":-1.6343,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 942",
+"name":"",
+"ra":80.1223,
+"dec":-3.7841,
+"sizeArcmin":100.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 945",
+"name":"",
+"ra":78.8668,
+"dec":-4.9448,
+"sizeArcmin":90.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 947",
+"name":"",
+"ra":101.1724,
+"dec":6.6143,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 950",
+"name":"",
+"ra":84.3794,
+"dec":-2.3045,
+"sizeArcmin":70.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 952",
+"name":"",
+"ra":100.1669,
+"dec":5.4525,
+"sizeArcmin":200.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 958",
+"name":"",
+"ra":84.8753,
+"dec":-3.1403,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 962",
+"name":"",
+"ra":85.3753,
+"dec":-3.1427,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 964",
+"name":"",
+"ra":80.6127,
+"dec":-5.7864,
+"sizeArcmin":110.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 976",
+"name":"",
+"ra":89.376,
+"dec":-2.9954,
+"sizeArcmin":160.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 977",
+"name":"",
+"ra":84.3615,
+"dec":-5.9712,
+"sizeArcmin":240.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 982",
+"name":"",
+"ra":88.3638,
+"dec":-5.4906,
+"sizeArcmin":50.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 985",
+"name":"",
+"ra":89.1122,
+"dec":-5.8275,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 988",
+"name":"",
+"ra":88.1089,
+"dec":-6.4893,
+"sizeArcmin":180.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"LBN 989",
+"name":"",
+"ra":86.8549,
+"dec":-7.3166,
+"sizeArcmin":60.0,
+"kind":"nebula",
+"catalog":"LBN"
+},
+{
+"id":"vdB 109",
+"name":"",
+"ra":250.39326,
+"dec":-17.74217,
+"sizeArcmin":36.0,
+"kind":"nebula",
+"catalog":"vdB"
+},
+{
+"id":"vdB 129",
+"name":"",
+"ra":302.82619,
+"dec":-0.82146,
+"sizeArcmin":96.0,
+"kind":"nebula",
+"catalog":"vdB"
+},
+{
+"id":"vdB 14",
+"name":"",
+"ra":52.26722,
+"dec":59.94033,
+"sizeArcmin":46.0,
+"kind":"nebula",
+"catalog":"vdB"
+},
+{
+"id":"vdB 140",
+"name":"",
+"ra":319.32829,
+"dec":58.61148,
+"sizeArcmin":20.0,
+"kind":"nebula",
+"catalog":"vdB"
+},
+{
+"id":"vdB 15",
+"name":"",
+"ra":52.4781,
+"dec":58.87875,
+"sizeArcmin":54.0,
+"kind":"nebula",
+"catalog":"vdB"
+},
+{
+"id":"vdB 156",
+"name":"",
+"ra":345.48027,
+"dec":42.32598,
+"sizeArcmin":188.0,
+"kind":"nebula",
+"catalog":"vdB"
+},
+{
+"id":"vdB 30",
+"name":"",
+"ra":73.51254,
+"dec":66.34268,
+"sizeArcmin":46.0,
+"kind":"nebula",
+"catalog":"vdB"
+},
+{
+"id":"vdB 36",
+"name":"",
+"ra":78.63447,
+"dec":-8.20164,
+"sizeArcmin":240.0,
+"kind":"nebula",
+"catalog":"vdB"
+},
+{
+"id":"vdB 48",
+"name":"",
+"ra":84.52715,
+"dec":-0.1843,
+"sizeArcmin":28.0,
+"kind":"nebula",
+"catalog":"vdB"
+},
+{
+"id":"vdB 49",
+"name":"",
+"ra":84.79644,
+"dec":4.12147,
+"sizeArcmin":42.0,
+"kind":"nebula",
+"catalog":"vdB"
+},
+{
+"id":"Abell 13",
+"name":"",
+"ra":91.1947597,
+"dec":3.940804,
+"sizeArcmin":2.55,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 21",
+"name":"",
+"ra":112.2620147,
+"dec":13.2416746,
+"sizeArcmin":10.25,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 24",
+"name":"",
+"ra":117.9104845,
+"dec":3.0074846,
+"sizeArcmin":5.92,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 25",
+"name":"",
+"ra":121.6885096,
+"dec":-2.8785492,
+"sizeArcmin":2.75,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 28",
+"name":"",
+"ra":130.394107,
+"dec":58.2317335,
+"sizeArcmin":4.5,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 29",
+"name":"",
+"ra":130.0592777,
+"dec":-20.8948093,
+"sizeArcmin":6.67,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 33",
+"name":"",
+"ra":144.7875625,
+"dec":-2.8090673,
+"sizeArcmin":4.5,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 34",
+"name":"",
+"ra":146.3962521,
+"dec":-13.170515,
+"sizeArcmin":4.83,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 35",
+"name":"",
+"ra":193.4224938,
+"dec":-22.8617562,
+"sizeArcmin":12.83,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 36",
+"name":"",
+"ra":205.1718462,
+"dec":-19.8824129,
+"sizeArcmin":6.17,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 39",
+"name":"",
+"ra":246.8892287,
+"dec":27.9096287,
+"sizeArcmin":2.9,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 45",
+"name":"",
+"ra":277.5726209,
+"dec":-11.6149846,
+"sizeArcmin":4.75,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 56",
+"name":"",
+"ra":288.2776349,
+"dec":2.8803173,
+"sizeArcmin":3.02,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 6",
+"name":"",
+"ra":44.7206353,
+"dec":64.4995312,
+"sizeArcmin":3.1,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 61",
+"name":"",
+"ra":289.7923515,
+"dec":46.2434279,
+"sizeArcmin":3.33,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 62",
+"name":"",
+"ra":293.326318,
+"dec":10.6169756,
+"sizeArcmin":2.68,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 66",
+"name":"",
+"ra":299.382541,
+"dec":-21.610227,
+"sizeArcmin":4.45,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 7",
+"name":"",
+"ra":75.7834593,
+"dec":-15.603612,
+"sizeArcmin":12.67,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 71",
+"name":"",
+"ra":308.0967433,
+"dec":47.3509772,
+"sizeArcmin":2.62,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Abell 74",
+"name":"",
+"ra":319.2181227,
+"dec":24.1475699,
+"sizeArcmin":13.83,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"CTSS 3",
+"name":"",
+"ra":285.7818136,
+"dec":14.116051,
+"sizeArcmin":10.0,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"DS 2",
+"name":"",
+"ra":235.7528222,
+"dec":-39.3250381,
+"sizeArcmin":3.0,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"DeHt 5",
+"name":"",
+"ra":334.8903756,
+"dec":70.9336618,
+"sizeArcmin":8.83,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"EGB 1",
+"name":"",
+"ra":16.7836354,
+"dec":73.5565276,
+"sizeArcmin":4.5,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"EGB 5",
+"name":"",
+"ra":122.811341,
+"dec":10.9505575,
+"sizeArcmin":2.83,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"EGB 6",
+"name":"",
+"ra":148.2521027,
+"dec":13.7474796,
+"sizeArcmin":12.0,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"ESO 215-04",
+"name":"",
+"ra":163.6752236,
+"dec":-48.7835261,
+"sizeArcmin":5.0,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"HDW  2",
+"name":"",
+"ra":47.7520624,
+"dec":62.80092,
+"sizeArcmin":5.67,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"HDW  3",
+"name":"",
+"ra":51.8142932,
+"dec":45.4053724,
+"sizeArcmin":9.0,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"HFG 1",
+"name":"",
+"ra":45.9535139,
+"dec":64.8911712,
+"sizeArcmin":8.33,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"HaTr  9",
+"name":"",
+"ra":272.2413571,
+"dec":-41.8068315,
+"sizeArcmin":2.7,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"IsWe 1",
+"name":"",
+"ra":57.2746186,
+"dec":50.0041952,
+"sizeArcmin":13.0,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"IsWe 2",
+"name":"",
+"ra":333.3448207,
+"dec":65.8986356,
+"sizeArcmin":15.0,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Jn 1",
+"name":"",
+"ra":353.9731358,
+"dec":30.46722,
+"sizeArcmin":5.33,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"JnEr 1",
+"name":"",
+"ra":119.4690876,
+"dec":53.4217865,
+"sizeArcmin":6.33,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"K 1-22",
+"name":"",
+"ra":171.6851474,
+"dec":-34.3708582,
+"sizeArcmin":3.0,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"K 2- 2",
+"name":"",
+"ra":103.1267486,
+"dec":9.9634103,
+"sizeArcmin":6.92,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"K 2-15",
+"name":"",
+"ra":132.1612574,
+"dec":-42.8960887,
+"sizeArcmin":2.83,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Lo  1",
+"name":"",
+"ra":44.2428264,
+"dec":-44.1719498,
+"sizeArcmin":6.22,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Lo  5",
+"name":"",
+"ra":168.4606633,
+"dec":-48.0925529,
+"sizeArcmin":3.58,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"LoTr  5",
+"name":"",
+"ra":193.892065,
+"dec":25.8911032,
+"sizeArcmin":8.75,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"PHL 932",
+"name":"",
+"ra":14.989501,
+"dec":15.7359909,
+"sizeArcmin":4.58,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"PuWe 1",
+"name":"",
+"ra":94.8929264,
+"dec":55.6118371,
+"sizeArcmin":20.0,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Sh 2- 68",
+"name":"",
+"ra":276.2437534,
+"dec":0.8606942,
+"sizeArcmin":6.67,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Sh 2-176",
+"name":"",
+"ra":7.9730767,
+"dec":57.3758683,
+"sizeArcmin":12.0,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Simeiz 22",
+"name":"",
+"ra":22.6651433,
+"dec":58.3667489,
+"sizeArcmin":5.67,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"We 2-  5",
+"name":"",
+"ra":25.6590633,
+"dec":60.1684252,
+"sizeArcmin":3.25,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"We 2- 34",
+"name":"",
+"ra":105.1153616,
+"dec":4.3456288,
+"sizeArcmin":3.83,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"WeDe 1",
+"name":"",
+"ra":89.8531419,
+"dec":10.6946236,
+"sizeArcmin":15.42,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"WeSb 1",
+"name":"",
+"ra":15.2243849,
+"dec":55.0606958,
+"sizeArcmin":2.5,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"WeSb 5",
+"name":"",
+"ra":300.4251409,
+"dec":19.9114903,
+"sizeArcmin":2.5,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"YM 16",
+"name":"",
+"ra":283.7368247,
+"dec":6.0446733,
+"sizeArcmin":5.07,
+"kind":"planetary",
+"catalog":"Abell"
+},
+{
+"id":"Cr 399",
+"name":"Coathanger",
+"ra":286.25,
+"dec":20.18,
+"sizeArcmin":89.0,
+"kind":"cluster",
+"catalog":"Cr"
+},
+{
+"id":"Mel 111",
+"name":"Coma Star Cluster",
+"ra":186.0,
+"dec":26.0,
+"sizeArcmin":300.0,
+"kind":"cluster",
+"catalog":"Cr"
+},
+{
+"id":"Mel 20",
+"name":"Alpha Persei Cluster",
+"ra":51.6,
+"dec":49.0,
+"sizeArcmin":300.0,
+"kind":"cluster",
+"catalog":"Cr"
+},
+{
+"id":"Mel 25",
+"name":"Hyades",
+"ra":66.75,
+"dec":15.87,
+"sizeArcmin":330.0,
+"kind":"cluster",
+"catalog":"Cr"
+},
+{
 "id":"B142",
 "name":"Barnard's E",
 "ra":294.9222,

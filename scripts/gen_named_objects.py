@@ -13,6 +13,11 @@ hand-typed) and writes frontend/src/sky/skyObjects.generated.json:
   - Named dark nebulae (Barnard)  via VizieR VII/220A (curated famous ones)
   - Curated planetary nebulae      via OpenNGC (larger/brighter popular ones,
                                     including NGC/IC-only PNe below the size floors)
+  - Lynds' Bright Nebulae (LBN)    via VizieR VII/9  (sizeable/brighter)
+  - RCW southern HII regions       via VizieR VII/216 (size-filtered)
+  - Large planetary nebulae (Abell) via VizieR V/84 (Acker+ 1992, size-filtered)
+  - vdB reflection nebulae         via VizieR VII/21 (size-filtered)
+  - Bright non-NGC open clusters    curated (Coathanger, Hyades, Coma, Alpha Per)
   - A few famous NGC-only showpieces (featured) so they aren't lost
 
 Run from anywhere (needs outbound HTTPS to GitHub raw + CDS VizieR):
@@ -58,6 +63,37 @@ BARNARD_URL = (
     "https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=VII/220A"
     "&-out=Barn,_RAJ2000,_DEJ2000,Diam&-out.max=unlimited"
 )
+# Lynds' Catalogue of Bright Nebulae (VII/9, ~1125). Seq is the LBN number; Diam1
+# is the largest dimension in arcmin; Bright is a 6-step brightness scale
+# (1=brightest, 6=faintest) usable as a secondary filter. (Area, in sq deg, is an
+# alternative size measure — see LBN_MIN note.)
+LBN_URL = (
+    "https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=VII/9"
+    "&-out=Seq,_RAJ2000,_DEJ2000,Diam1,Area,Bright,Name&-out.max=unlimited"
+)
+# RCW southern HII regions (VII/216, ~181). Complements Sharpless (dec >~ -27).
+# MajAxis is the major-axis size in arcmin.
+RCW_URL = (
+    "https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=VII/216/rcw"
+    "&-out=RCW,_RAJ2000,_DEJ2000,MajAxis,IDs&-out.max=unlimited"
+)
+# Strasbourg-ESO Galactic PNe (V/84, Acker+ 1992, ~1140). The main table has the
+# position + names; the diam sub-table has oDiam (optical diameter, ARCSEC) keyed
+# by PN-G. Large faint Abell PNe (Abell 21 Medusa, Abell 39, ...) live here.
+ABELL_MAIN_URL = (
+    "https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=V/84/main"
+    "&-out=PNG,_RAJ2000,_DEJ2000,Name,PK,Idents&-out.max=unlimited"
+)
+ABELL_DIAM_URL = (
+    "https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=V/84/diam"
+    "&-out=PNG,oDiam&-out.max=unlimited"
+)
+# van den Bergh reflection nebulae (VII/21, ~158). BRadMax/RRadMax are the max
+# radii (arcmin) on the blue/red PSS prints; diameter = 2*max(radius).
+VDB_URL = (
+    "https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=VII/21"
+    "&-out=VdB,_RA,_DE,BRadMax,RRadMax&-out.max=unlimited"
+)
 
 # Inclusion thresholds (major-axis arcmin) — keep the bundle to recognisable,
 # on-sky-meaningful objects; runtime zoom-culling declutters further.
@@ -75,6 +111,42 @@ NGC_MIN = 1.6
 # surface once you're zoomed toward them. The FEATURED_PN names are added regardless
 # of size on top of this.
 PN_MIN = 0.25
+
+# --- Supplementary bright-object catalogs (bead 2a3) -------------------------
+# LBN: keep sizeable AND not-faint nebulae. Diam1 (largest dimension, arcmin) is
+# the primary size filter; Bright (1=brightest..6=faintest) is a secondary filter
+# dropping the two faintest classes. (Diam1 is the catalog's own major axis; the
+# Area column — sq deg — would give an equivalent-disc diameter of
+# 2*sqrt(Area/pi)*60 arcmin, but Diam1 is the real extent and is used directly.)
+LBN_MIN = 45.0        # arcmin (largest dimension)
+LBN_BRIGHT_MAX = 4    # keep brightness classes 1..4 (drop the faintest 5-6)
+# RCW southern HII: keep the larger ones (major axis, arcmin).
+RCW_MIN = 15.0
+# Abell/Strasbourg-ESO PNe: keep the larger ones. oDiam is in ARCSEC, so this is
+# in arcmin; ~2.5' keeps Abell 21 (10'), Abell 31 (16'), Abell 39 (2.9'), etc.
+# while dropping the swarm of tiny/faint galactic PNe.
+ABELL_MIN = 2.5       # arcmin
+# vdB reflection nebulae: keep sizeable ones (diameter = 2*max radius, arcmin).
+# A couple of entries report enormous max radii (vdB 36 ~410' radius around a
+# bright supergiant) that would swamp the overlay, so cap the drawn extent.
+VDB_MIN = 20.0        # arcmin (diameter)
+VDB_MAX = 240.0       # arcmin (drawn extent cap)
+
+# Curated common names for a few famous supplementary-catalog objects (nicer
+# labels; dedup still folds any that coincide with an NGC/Sh2/Messier entry).
+LBN_NAMES = {
+    # LBN 373 (RA ~315.5, Dec ~+44) covers the North America / Pelican region.
+    "LBN 373": "North America region",
+}
+# Bright non-NGC open clusters missing from the NGC/IC branches — a small curated
+# hand-list (accurate J2000 deg + large angular sizes). Collinder/Melotte ids.
+# (id, name, RA deg J2000, Dec deg, sizeArcmin.)
+FEATURED_CLUSTERS = [
+    ("Cr 399", "Coathanger", 286.25, 20.18, 89.0),
+    ("Mel 20", "Alpha Persei Cluster", 51.6, 49.0, 300.0),
+    ("Mel 111", "Coma Star Cluster", 186.0, 26.0, 300.0),
+    ("Mel 25", "Hyades", 66.75, 15.87, 330.0),
+]
 
 # Curated famous Barnard dark nebulae: number -> common name. Coordinates and
 # diameters come from the catalog fetch; only these numbers are included so the
@@ -183,7 +255,15 @@ MESSIER_EXTRA = {
 # Messier first, then Caldwell (the user-requested highlight list), then the
 # survey catalogs; featured NGC ranks just above SNR so a coincident Caldwell
 # entry is preferred but unique NGC showpieces (e.g. the Flame) still survive.
-PRIORITY = {"M": 0, "C": 1, "IC": 2, "Sh2": 3, "NGC": 4, "SNR": 5, "B": 6, "LDN": 7}
+# The supplementary bright-object catalogs (LBN/RCW/Abell/vdB/Cr) rank LOW —
+# after NGC and the survey catalogs — so a coincident Messier/Caldwell/IC/Sh2/NGC
+# id or name wins on overlap; the surviving entry still inherits a common name
+# from any supplementary duplicate it absorbs.
+PRIORITY = {
+    "M": 0, "C": 1, "IC": 2, "Sh2": 3, "NGC": 4, "SNR": 5,
+    "RCW": 6, "LBN": 7, "vdB": 8, "Abell": 9, "Cr": 10,
+    "B": 11, "LDN": 12,
+}
 
 # Corrections for known wrong common names in the source catalogs, keyed by the
 # object's final id. OpenNGC lists IC 434's common name as "Flame Nebula", but
@@ -470,6 +550,149 @@ def featured_dark() -> list[dict]:
     ]
 
 
+def lbn() -> list[dict]:
+    """Lynds' Bright Nebulae (VII/9). Keep sizeable (Diam1 >= LBN_MIN) and
+    not-faint (Bright <= LBN_BRIGHT_MAX) emission/reflection nebulae."""
+    rows = parse_tsv(fetch(LBN_URL), 6)
+    out: list[dict] = []
+    for cells in rows:
+        seq = cells[0].strip()
+        try:
+            n = int(seq)
+            ra, dec = float(cells[1]), float(cells[2])
+            diam = float(cells[3])
+        except (ValueError, IndexError):
+            continue
+        try:
+            bright = int(cells[5]) if cells[5].strip() else 6
+        except (ValueError, IndexError):
+            bright = 6
+        if diam < LBN_MIN or bright > LBN_BRIGHT_MAX:
+            continue
+        pid = f"LBN {n}"
+        out.append(dict(
+            id=pid, name=LBN_NAMES.get(pid, ""), ra=ra, dec=dec,
+            sizeArcmin=round(diam, 2), kind="nebula", catalog="LBN",
+        ))
+    return out
+
+
+def rcw() -> list[dict]:
+    """RCW southern HII regions (VII/216). Complements Sharpless below dec -27."""
+    rows = parse_tsv(fetch(RCW_URL), 4)
+    out: list[dict] = []
+    for cells in rows:
+        rid = cells[0].strip()
+        try:
+            n = int(rid)
+            ra, dec = float(cells[1]), float(cells[2])
+            maj = float(cells[3])
+        except (ValueError, IndexError):
+            continue
+        if maj < RCW_MIN:
+            continue
+        out.append(dict(
+            id=f"RCW {n}", name="", ra=ra, dec=dec,
+            sizeArcmin=round(maj, 2), kind="nebula", catalog="RCW",
+        ))
+    return out
+
+
+ABELL_NAME_RE = re.compile(r"^A\s*0*([0-9]+)$")
+
+
+def _abell_number(*fields: str) -> int | None:
+    """Extract an Abell PN number from a Name / Idents field ('A 21' -> 21)."""
+    for field in fields:
+        for tok in (field or "").replace(";", ",").split(","):
+            m = ABELL_NAME_RE.match(tok.strip())
+            if m:
+                return int(m.group(1))
+    return None
+
+
+def abell() -> list[dict]:
+    """Strasbourg-ESO Galactic PNe (V/84). Keep the larger ones (oDiam >=
+    ABELL_MIN). Labelled by Abell number where present ('Abell 21'), else by the
+    catalog's main designation (PN-G / PK / common id)."""
+    # Optical diameters (arcsec) keyed by PN-G, from the diam sub-table.
+    diam_by_png: dict[str, float] = {}
+    for cells in parse_tsv(fetch(ABELL_DIAM_URL), 2):
+        png = cells[0].strip()
+        try:
+            diam_by_png[png] = float(cells[1])
+        except (ValueError, IndexError):
+            continue
+    rows = parse_tsv(fetch(ABELL_MAIN_URL), 4)
+    out: list[dict] = []
+    for cells in rows:
+        png = cells[0].strip()
+        try:
+            ra, dec = float(cells[1]), float(cells[2])
+        except (ValueError, IndexError):
+            continue
+        name = cells[3].strip() if len(cells) > 3 else ""
+        idents = cells[5].strip() if len(cells) > 5 else ""
+        diam_arcsec = diam_by_png.get(png)
+        if diam_arcsec is None:
+            continue
+        diam_arcmin = diam_arcsec / 60.0
+        if diam_arcmin < ABELL_MIN:
+            continue
+        anum = _abell_number(name, idents)
+        if anum is not None:
+            pid = f"Abell {anum}"
+        elif name:
+            pid = name  # main designation (e.g. 'M 3-43')
+        else:
+            pid = f"PN G{png}"
+        out.append(dict(
+            id=pid, name="", ra=ra, dec=dec,
+            sizeArcmin=round(diam_arcmin, 2), kind="planetary", catalog="Abell",
+        ))
+    return out
+
+
+def vdb() -> list[dict]:
+    """van den Bergh reflection nebulae (VII/21). Keep sizeable ones (diameter =
+    2*max(BRadMax, RRadMax) >= VDB_MIN)."""
+    rows = parse_tsv(fetch(VDB_URL), 3)
+    out: list[dict] = []
+    for cells in rows:
+        vid = cells[0].strip()
+        try:
+            n = int(vid)
+            ra, dec = float(cells[1]), float(cells[2])
+        except (ValueError, IndexError):
+            continue
+
+        def _f(x: str) -> float:
+            try:
+                return float(x)
+            except ValueError:
+                return 0.0
+
+        brad = _f(cells[3]) if len(cells) > 3 else 0.0
+        rrad = _f(cells[4]) if len(cells) > 4 else 0.0
+        diam = 2.0 * max(brad, rrad)
+        if diam < VDB_MIN:
+            continue
+        out.append(dict(
+            id=f"vdB {n}", name="", ra=ra, dec=dec,
+            sizeArcmin=round(min(diam, VDB_MAX), 2), kind="nebula", catalog="vdB",
+        ))
+    return out
+
+
+def featured_clusters() -> list[dict]:
+    """Bright non-NGC open clusters (Collinder/Melotte) missing from OpenNGC."""
+    return [
+        dict(id=i, name=n, ra=ra, dec=dec, sizeArcmin=sz, kind="cluster",
+             catalog="Cr")
+        for (i, n, ra, dec, sz) in FEATURED_CLUSTERS
+    ]
+
+
 def angular_sep(a: dict, b: dict) -> float:
     ra1, dec1, ra2, dec2 = (
         math.radians(a["ra"]), math.radians(a["dec"]),
@@ -545,6 +768,11 @@ def main() -> None:
         "SNR": snrs(),
         "Barnard (dark)": barnard(),
         "featured dark": featured_dark(),
+        "LBN (bright neb)": lbn(),
+        "RCW (S HII)": rcw(),
+        "Abell (large PN)": abell(),
+        "vdB (reflection)": vdb(),
+        "featured clusters": featured_clusters(),
     }
     for label, g in groups.items():
         print(f"  {label:14s}: {len(g)}")
