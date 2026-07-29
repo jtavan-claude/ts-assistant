@@ -221,6 +221,10 @@ function AladinView(
   const namedZoomTimerRef = useRef<number>(0);
   // Timestamp of the last named-object re-cull, for the pan/zoom throttle (xmb).
   const namedRecullAtRef = useRef<number>(0);
+  // Timestamp of the last click on a NON-target catalog source (live-catalog / dark
+  // nebula, which show their own popup). Lets the frame-interior click handler skip
+  // recentering when the click actually landed on such an indicator (mph).
+  const nonTargetClickAtRef = useRef<number>(0);
   const draggingRef = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -417,7 +421,14 @@ function AladinView(
       aladin.on("objectClicked", (obj: any) => {
         const id = obj?.data?.id ?? obj?.tsTargetId;
         if (id != null) onClickRef.current?.(Number(id));
-        else closePopup();
+        else {
+          // A non-target source (live-catalog / dark-nebula indicator, which shows its
+          // own popup) — flag it so the frame-interior click handler below doesn't also
+          // recenter on the target frame underneath (which would leave the popup
+          // mispointing). obj === null means empty sky.
+          if (obj) nonTargetClickAtRef.current = performance.now();
+          closePopup();
+        }
       });
       // A footprint click also fires footprintClicked; selection is handled in
       // objectClicked above, so here we just dismiss any open marker popup.
@@ -429,8 +440,15 @@ function AladinView(
       // pan) we point-in-polygon the frames and select the one the click landed in.
       aladin.on("click", (e: any) => {
         if (!e || e.isDragging) return;
-        const id = frameTargetIdAt(e.x, e.y);
-        if (id != null) onClickRef.current?.(Number(id));
+        const { x, y } = e;
+        // Defer one tick so objectClicked (fired in the same mouseup dispatch) can flag
+        // a non-target source hit first. If the click landed on a live-catalog / dark
+        // nebula indicator, its popup wins — don't also recenter on the frame under it.
+        window.setTimeout(() => {
+          if (performance.now() - nonTargetClickAtRef.current < 100) return;
+          const id = frameTargetIdAt(x, y);
+          if (id != null) onClickRef.current?.(Number(id));
+        }, 0);
       });
 
       // Re-cull the named-object overlay when the view changes, so only the
